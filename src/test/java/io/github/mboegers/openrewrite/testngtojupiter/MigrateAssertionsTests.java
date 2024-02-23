@@ -7,7 +7,7 @@
  *
  * https://www.eclipse.org/legal/epl-v20.html
  */
-package io.github.mboegers.openrewrite.testngtojuniper;
+package io.github.mboegers.openrewrite.testngtojupiter;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
