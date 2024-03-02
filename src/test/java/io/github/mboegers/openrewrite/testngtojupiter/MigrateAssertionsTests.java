@@ -52,7 +52,7 @@ class MigrateAssertionsTests implements RewriteTest {
             //language=java
             rewriteRun(java("""
               import org.testng.Assert;
-                                  
+                   
               class MyTest {
                   void testMethod() {
                       %s actual;
@@ -108,7 +108,7 @@ class MigrateAssertionsTests implements RewriteTest {
               }
               """.formatted(type, type), """
               import org.junit.jupiter.api.Assertions;
-                                  
+              
               class MyTest {
                   void testMethod() {
                       %s actual;
