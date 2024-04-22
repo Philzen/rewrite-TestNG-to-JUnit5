@@ -21,6 +21,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 class MigrateDataProviderTest implements RewriteTest {
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
@@ -29,11 +30,9 @@ class MigrateDataProviderTest implements RewriteTest {
           .recipe(new MigrateDataProvider());
     }
 
+
     @Nested
-    class Wrap {
-        /*
-         * annotation parameter other than name are ignored
-         */
+    class WrapDataProvider {
         @Test
         void withName() {
             @Language("java") String is = """
@@ -53,7 +52,7 @@ class MigrateDataProviderTest implements RewriteTest {
               public class BoxPrimitiveDataProvider {
                   public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
                             
-                  public static Stream<Arguments> anotherBoxPrimitiveDataProviderSource() {
+                  public static Stream<Arguments> anotherBoxPrimitiveDataProvider() {
                       return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
                   }
               }
@@ -80,12 +79,55 @@ class MigrateDataProviderTest implements RewriteTest {
               public class BoxPrimitiveDataProvider {
                   public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
                             
-                  public static Stream<Arguments> boxPrimitiveDataProviderSource() {
+                  public static Stream<Arguments> boxPrimitiveDataProvider() {
                       return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
                   }
               }
               """;
             rewriteRun(java(is, should));
+        }
+
+        @Test
+        void doNothingWithoutAnnotation() {
+            rewriteRun(java("""
+              import org.testng.annotations.DataProvider;
+                            
+              public class BoxPrimitiveDataProvider {
+                  public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
+              }
+              """));
+        }
+
+    }
+
+    @Nested
+    class MigrateParameterToAnnotation {
+
+        @Test
+        void useWrappedMethod() {
+            rewriteRun(
+              java(
+                """
+                  import org.testng.annotations.Test;
+                  import de.boeg.tst.BoxPrimitiveDataProvider;
+                                  
+                  public class HotSpotConstantReflectionProviderTest {
+                      @Test(dataProvider = "boxPrimitiveDataProvider", dataProviderClass = BoxPrimitiveDataProvider.class)
+                      public void testUnboxPrimitive(Object constant, Object expected) {/*...*/}
+                  }
+                  """, """
+                  import org.junit.jupiter.params.ParameterizedTest;
+                  import org.junit.jupiter.params.provider.MethodSource;
+                                  
+                  class BoxPrimitiveDataProvider {}
+                                    
+                  public class HotSpotConstantReflectionProviderTest {
+                      @ParameterizedTest
+                      @MethodSource("de.boeg.tst.BoxPrimitiveDataProvider#boxPrimitiveDataProviderSource")
+                      public void testUnboxPrimitive(Object constant, Object expected) {/*...*/}
+                  }
+                  """
+              ));
         }
     }
 }

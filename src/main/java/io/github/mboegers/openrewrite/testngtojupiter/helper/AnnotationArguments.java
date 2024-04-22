@@ -6,8 +6,19 @@ import org.openrewrite.java.tree.J;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Answer questions regarding annotation arguments and there values
+ *
+ * @see J.Annotation
+ */
 public final class AnnotationArguments {
 
+    /**
+     * Determins if the annotation has any arguments
+     *
+     * @param annotation
+     * @return
+     */
     public static boolean hasAny(J.Annotation annotation) {
         List<Expression> arguments = annotation.getArguments();
 
@@ -19,18 +30,45 @@ public final class AnnotationArguments {
         return containsNoEmpty;
     }
 
-    public static <T> Optional<T> extract(J.Annotation annotation, String parameterName, Class<T> valueClass) {
+    /**
+     * Extracts all assignments with the given argument name from the annotation
+     *
+     * @param annotation   to extract the assignments from
+     * @param argumentName to extract
+     * @return
+     */
+    public static List<Expression> extractAssignments(J.Annotation annotation, String argumentName) {
+        List<Expression> arguments = annotation.getArguments();
+
+        if (arguments == null) {
+            return List.of();
+        }
+
+        return arguments.stream()
+                .filter(J.Assignment.class::isInstance)
+                .map(J.Assignment.class::cast)
+                .filter(a -> argumentName.equals(((J.Identifier) a.getVariable()).getSimpleName()))
+                .map(J.Assignment::getAssignment)
+                .toList();
+    }
+
+    /**
+     * Extract an annotation argument as literal
+     *
+     * @param annotation   to extract literal from
+     * @param argumentName to extract
+     * @param valueClass   expected type of the value
+     * @param <T>          Type of the value
+     * @return the value or Optional#empty
+     */
+    public static <T> Optional<T> extractLiteral(J.Annotation annotation, String argumentName, Class<T> valueClass) {
         List<Expression> arguments = annotation.getArguments();
 
         if (arguments == null) {
             return Optional.empty();
         }
 
-        return arguments.stream()
-                .filter(J.Assignment.class::isInstance)
-                .map(J.Assignment.class::cast)
-                .filter(a -> parameterName.equals(((J.Identifier) a.getVariable()).getSimpleName()))
-                .map(J.Assignment::getAssignment)
+        return extractAssignments(annotation, argumentName).stream()
                 .filter(J.Literal.class::isInstance)
                 .map(J.Literal.class::cast)
                 .findAny()
