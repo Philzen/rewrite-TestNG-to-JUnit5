@@ -18,7 +18,9 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markup;
 
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 
 @Value
@@ -132,11 +134,24 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                         ((J.VariableDeclarations) body.getStatements().get(0))
                         .getVariables().get(0).getInitializer();
 
-                m = JavaTemplate.builder("Assertions.assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
-                        .javaParser(javaParser())
-                        .imports("org.junit.jupiter.api.Assertions").build()
-                        .apply(updateCursor(m), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
                 maybeAddImport("org.junit.jupiter.api.Assertions");
+                final List<Object> parameters = Arrays.asList(cta.expectedException, lambda);
+                final String code = "Assertions.assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});";
+                if (!(cta.expectedExceptionMessageRegExp instanceof J.Literal)) {
+                    m = JavaTemplate.builder(code).javaParser(javaParser())
+                        .imports("org.junit.jupiter.api.Assertions").build()
+                        .apply(updateCursor(m), m.getCoordinates().replaceBody(), parameters.toArray());
+                } else {
+                    m = JavaTemplate.builder(
+                            "final Throwable thrown = " + code + System.lineSeparator()
+                                + "Assertions.assertTrue(thrown.getMessage().matches(#{any(java.lang.String)}));"
+                        ).javaParser(javaParser()).imports("org.junit.jupiter.api.Assertions").build()
+                        .apply(
+                            updateCursor(m), 
+                            m.getCoordinates().replaceBody(), 
+                            ListUtils.concat(parameters, cta.expectedExceptionMessageRegExp).toArray()
+                        );
+                }
             }
 
             if (cta.timeout != null) {
@@ -157,7 +172,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             private boolean found;
 
             @Nullable
-            Expression expectedException, timeout;
+            Expression expectedException, expectedExceptionMessageRegExp, timeout;
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext ctx) {
@@ -180,6 +195,8 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                             // if attribute was given in { array form }, pick the first element (null is not allowed)
                             expectedException = !(e instanceof J.NewArray)
                                 ? e : Objects.requireNonNull(((J.NewArray) e).getInitializer()).get(0);
+                        } else if ("expectedExceptionsMessageRegExp".equals(assignParamName)) {
+                            expectedExceptionMessageRegExp = e;
                         } else if ("timeOut".equals(assignParamName)) {
                             timeout = e;
                         }
