@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.yourorg;
+package org.philzen.oss;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
@@ -23,40 +23,35 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-// This is a test for the UseOpenRewriteNullable recipe, as an example of how to write a test for a declarative recipe.
-class UseOpenRewriteNullableTest implements RewriteTest {
+class UseApacheStringUtilsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec
-          // Use the fully qualified class name of the recipe defined in src/main/resources/META-INF/rewrite/rewrite.yml
-          .recipeFromResources("com.yourorg.UseOpenRewriteNullable")
-          // The before and after text blocks contain references to annotations from these two classpath entries
-          .parser(JavaParser.fromJavaVersion().classpath("annotations", "rewrite-core"));
+        spec.recipeFromResources("org.philzen.oss.UseApacheStringUtils")
+          .parser(JavaParser.fromJavaVersion().classpath("commons-lang3", "spring-core"));
     }
 
     @DocumentExample
     @Test
-    void replacesNullableAnnotation() {
+    void replacesStringEquals() {
         rewriteRun(
-          // Composite recipes are a hierarchy of recipes that can be applied in a single pass.
-          // To view what the composite recipe does, you can use the RecipePrinter to print the recipe to the console.
-          spec -> spec.printRecipe(() -> System.out::println),
           //language=java
           java(
             """
-              import org.jetbrains.annotations.Nullable;
+              import org.springframework.util.StringUtils;
               
               class A {
-                  @Nullable
-                  String s;
+                  boolean test(String s) {
+                      return StringUtils.containsWhitespace(s);
+                  }
               }
               """,
             """
-              import org.openrewrite.internal.lang.Nullable;
+              import org.apache.commons.lang3.StringUtils;
               
               class A {
-                  @Nullable
-                  String s;
+                  boolean test(String s) {
+                      return StringUtils.containsWhitespace(s);
+                  }
               }
               """
           )
