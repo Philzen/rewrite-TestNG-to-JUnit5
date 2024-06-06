@@ -48,13 +48,21 @@ dependencies {
     // Need to have a slf4j binding to see any output enabled from the parser.
     runtimeOnly("ch.qos.logback:logback-classic:1.2.+")
 
-    // Our recipe converts Guava's `Lists` type
-    testRuntimeOnly("com.google.guava:guava:latest.release")
-    testRuntimeOnly("org.apache.commons:commons-lang3:latest.release")
-    testRuntimeOnly("org.springframework:spring-core:latest.release")
-
     // Contains the OpenRewriteBestPractices recipe, which you can apply to your recipes
     rewrite("org.openrewrite.recipe:rewrite-recommendations:latest.release")
+
+    // ↓ Dependencies specific to this project
+    testRuntimeOnly("org.testng:testng:7.5.1") {
+        because("7.5.x is the last Java 8 compatible version: https://github.com/testng-team/testng/issues/2775")
+    }
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-api:latest.release")
+    testImplementation("org.apiguardian:apiguardian-api:latest.release") {
+        because("Non-essential annotations on JUnit 5 implementations, provided here to avoid 'unknown enum constant Status.STABLE' warning on gradle CI build")
+    }
+    testRuntimeOnly("org.openrewrite.recipe:rewrite-testing-frameworks:latest.release") {
+        because("Provides essential recipes for usage in this project's recipe list")
+        exclude("org.testcontainers", "testcontainers")
+    }
 }
 
 signing {
