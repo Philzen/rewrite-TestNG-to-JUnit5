@@ -407,6 +407,38 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
             ));
         }
 
+        @Test void Attribute_expectedExceptionsMessageRegExp() {
+            // language=java
+            rewriteRun(java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "boom.*!")
+                    public void test() {
+                        throw new IllegalArgumentException("boom     !");
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                        final Throwable thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+                            throw new IllegalArgumentException("boom     !");
+                        });
+                        Assertions.assertTrue(thrown.getMessage().matches("boom.*!"));
+                    }
+                }
+                """
+            ));
+        }
+
         @Test void isMigratedToBodyWrappedInAssertThrows_forLiteralCustomExceptionThrown() {
             // language=java
             rewriteRun(java(
