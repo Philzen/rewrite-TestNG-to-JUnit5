@@ -55,6 +55,9 @@ dependencies {
 
     // Contains the OpenRewriteBestPractices recipe, which you can apply to your recipes
     rewrite("org.openrewrite.recipe:rewrite-recommendations:latest.release")
+
+    // ↓ Classpath resource for MigrateTestNg* recipes
+    testRuntimeOnly("org.testng:testng:7.5.1")  // 7.5.x is the last Java 8 compatible version: https://github.com/testng-team/testng/issues/2775
 }
 
 signing {
