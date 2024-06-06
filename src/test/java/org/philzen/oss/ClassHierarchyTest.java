@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.yourorg;
+package org.philzen.oss;
 
-import com.yourorg.table.ClassHierarchyReport;
+import org.philzen.oss.table.ClassHierarchyReport;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
