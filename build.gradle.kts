@@ -20,6 +20,10 @@ plugins {
 group = "org.philzen.oss"
 description = "Rewrite recipes."
 
+tasks.named<JavaCompile>("compileJava") {
+    options.release.set(8)
+}
+
 dependencies {
     // The bom version can also be set to a specific version
     // https://github.com/openrewrite/rewrite-recipe-bom/releases
