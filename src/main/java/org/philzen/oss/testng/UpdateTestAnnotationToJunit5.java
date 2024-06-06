@@ -17,7 +17,10 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markup;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -129,11 +132,21 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                         ((J.VariableDeclarations) m.getBody().getStatements().get(0))
                         .getVariables().get(0).getInitializer();
 
-                m = JavaTemplate.builder("assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});")
-                        .javaParser(javaParser())
-                        .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
-                        .build()
-                        .apply(updateCursor(m), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
+                final List<String> staticImports = new ArrayList<>(2);
+                staticImports.add("org.junit.jupiter.api.Assertions.assertThrows");
+                final List<Object> parameters = new ArrayList<>(3);
+                parameters.addAll(Arrays.asList(cta.expectedException, lambda));
+                String code = "assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});";
+                if (cta.expectedExceptionMessageRegExp instanceof J.Literal) {
+                    code = "Throwable thrown = " + code + System.lineSeparator()
+                            + "assertTrue(thrown.getMessage().matches(#{any(java.lang.String)}));";
+                    parameters.add(cta.expectedExceptionMessageRegExp);
+                    staticImports.add("org.junit.jupiter.api.Assertions.assertTrue");
+                    maybeAddImport("org.junit.jupiter.api.Assertions", "assertTrue");
+                }
+                m = JavaTemplate.builder(code)
+                        .javaParser(javaParser()).staticImports(staticImports.toArray(new String[0])).build()
+                        .apply(updateCursor(m), m.getCoordinates().replaceBody(), parameters.toArray());
                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
             }
 
@@ -155,7 +168,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             private boolean found;
 
             @Nullable
-            Expression expectedException, timeout;
+            Expression expectedException, expectedExceptionMessageRegExp, timeout;
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext ctx) {
@@ -176,6 +189,8 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                         final Expression e = assign.getAssignment();
                         if ("expectedExceptions".equals(assignParamName)) {
                             expectedException = e;
+                        } else if ("expectedExceptionsMessageRegExp".equals(assignParamName)) {
+                            expectedExceptionMessageRegExp = e;
                         } else if ("timeOut".equals(assignParamName)) {
                             timeout = e;
                         }

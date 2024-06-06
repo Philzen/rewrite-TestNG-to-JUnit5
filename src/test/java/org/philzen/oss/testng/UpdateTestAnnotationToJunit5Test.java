@@ -15,7 +15,6 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
         spec.recipe(new UpdateTestAnnotationToJunit5());
     }
 
-    // TODO @Test(expectedExceptionsMessageRegExp = "…")
     // TODO @Test(dataProvider = "…")
     // TODO @Test(enabled = false) → org.junit.jupiter.api.Disabled
     // TODO @Test(description = "…") → org.junit.jupiter.api.DisplayName
@@ -445,6 +444,42 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
                           throw new IllegalArgumentException("boom");
                       });
                   }
+                }
+                """
+              )
+            );
+        }
+
+        @Test void Attribute_expectedExceptionsMessageRegExp() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "boom.*!")
+                    public void test() {
+                        throw new IllegalArgumentException("boom     !");
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Test;
+                
+                import static org.junit.jupiter.api.Assertions.assertThrows;
+                import static org.junit.jupiter.api.Assertions.assertTrue;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                        Throwable thrown = assertThrows(IllegalArgumentException.class, () -> {
+                            throw new IllegalArgumentException("boom     !");
+                        });
+                        assertTrue(thrown.getMessage().matches("boom.*!"));
+                    }
                 }
                 """
               )
