@@ -1,5 +1,6 @@
 package org.philzen.oss.testng;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RecipeSpec;
@@ -671,6 +672,45 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
                         assertThrows(IllegalArgumentException.class, () -> {
                             throw new IllegalArgumentException("boom");
                         });
+                    }
+                }
+                """
+              )
+            );
+        }
+    }
+
+    @Nested class Attributes_NotImplemented_willBeDeleted {
+
+        // TODO
+        @Disabled("TODO: needs to remove unknown annotation attributes")
+        @Test void annotationAttributesWillBeDropped_WhenCannotBeHandled() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                package de.foo.bar;
+                
+                import org.testng.annotations.Test;
+                
+                @Test(threadPoolSize = 8)
+                class Baz {
+                
+                    @Test public void shouldDoStuff() {
+                        //
+                    }
+                }
+                """,
+                """
+                package de.foo.bar;
+                
+                import org.testng.annotations.Test;
+                
+                @Test
+                class Baz {
+                
+                    @Test public void shouldDoStuff() {
+                        //
                     }
                 }
                 """
