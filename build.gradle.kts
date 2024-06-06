@@ -55,6 +55,9 @@ dependencies {
 
     // Contains the OpenRewriteBestPractices recipe, which you can apply to your recipes
     rewrite("org.openrewrite.recipe:rewrite-recommendations:latest.release")
+
+    // ↓ Classpath resource for MigrateTestNg* recipes
+    testRuntimeOnly("org.testng:testng:latest.release")
 }
 
 signing {

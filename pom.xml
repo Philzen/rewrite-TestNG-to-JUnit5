@@ -94,6 +94,15 @@
             <version>6.1.8</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- ↓ Classpath resource for MigrateTestNg* recipes -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>LATEST</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <dependencyManagement>
