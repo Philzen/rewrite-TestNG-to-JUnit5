@@ -17,7 +17,6 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
 
     // TODO @Test(dataProvider = "…")
     // TODO inner `public static class` → `@org.junit.jupiter.api.Nested static class`
-    // TODO @Test(groups = {"…"}) → org.junit.jupiter.api.Tag
 
     /*
      * TODO Nice-to-have:
@@ -827,6 +826,186 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
                   )
                 );
             }
+        }
+    }
+
+    @Nested class Attribute_groups {
+
+        @Test void isMigratedToSingleTagAnnotation_whenLiteralValue() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(groups = "Fast")
+                    public void test() {
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Tag;
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    @Tag("Fast")
+                    public void test() {
+                    }
+                }
+                """
+              )
+            );
+        }
+
+        @Test void isMigratedToSingleTagAnnotation_whenSingleArrayValue() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(groups = { "Fast" })
+                    public void test() {
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Tag;
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    @Tag("Fast")
+                    public void test() {
+                    }
+                }
+                """
+              )
+            );
+        }
+
+        @Test void isMigratedToMultipleTagAnnotations_forEveryArrayValue() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(groups = { "Fast", "Integration", "Regression-1312" })
+                    public void test() {
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Tag;
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    @Tag("Fast")
+                    @Tag("Integration")
+                    @Tag("Regression-1312")
+                    public void test() {
+                    }
+                }
+                """
+              )
+            );
+        }
+
+        @SuppressWarnings("DefaultAnnotationParam")
+        @Test void isIgnored_forEmptyArray() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(groups = { })
+                    public void test() {
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                    }
+                }
+                """
+              )
+            );
+        }
+
+        @Test void isIgnored_forEmptyString() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(groups = "")
+                    public void test() {
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                    }
+                }
+                """
+              )
+            );
+        }
+
+        @Test void isIgnored_forNull() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(groups = null)
+                    public void test() {
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                    }
+                }
+                """
+              )
+            );
         }
     }
 
