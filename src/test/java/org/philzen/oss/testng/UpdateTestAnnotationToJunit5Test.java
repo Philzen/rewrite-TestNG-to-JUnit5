@@ -602,6 +602,73 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
               )
             );
         }
+
+        @Nested class Array {
+
+            @Test void extractsFirstElementOfMultiple() {
+                // language=java
+                rewriteRun(
+                  java(
+                    """
+                    import org.testng.annotations.Test;
+                    
+                    public class MyTest {
+                    
+                        @Test(expectedExceptions = { RuntimeException.class, IllegalAccessError.class, UnknownError.class } )
+                        public void test() {
+                            throw new RuntimeException("Whooopsie!");
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Test;
+                    
+                    import static org.junit.jupiter.api.Assertions.assertThrows;
+                    
+                    public class MyTest {
+                    
+                        @Test
+                        public void test() {
+                            assertThrows(RuntimeException.class, () -> {
+                                throw new RuntimeException("Whooopsie!");
+                            });
+                        }
+                    }
+                    """
+                  )
+                );
+            }
+            @SuppressWarnings("DefaultAnnotationParam")
+            @Test void doesNotAddAssert_ifEmpty() {
+                // language=java
+                rewriteRun(
+                  java(
+                    """
+                    import org.testng.annotations.Test;
+                    
+                    public class MyTest {
+                    
+                        @Test(expectedExceptions = { } )
+                        public void test() {
+                            throw new RuntimeException("Not really caught nor tested");
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Test;
+                    
+                    public class MyTest {
+                    
+                        @Test
+                        public void test() {
+                            throw new RuntimeException("Not really caught nor tested");
+                        }
+                    }
+                    """
+                  )
+                );
+            }
+        }
     }
 
     @Nested class Attribute_timeOut {

@@ -188,6 +188,11 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                         final String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
                         final Expression e = assign.getAssignment();
                         if ("expectedExceptions".equals(assignParamName)) {
+                            if (e instanceof J.NewArray && ((J.NewArray) e).getInitializer() != null) {
+                                // attribute was given in { array form }, so pick the first element (or null)
+                                expectedException = ((J.NewArray) e).getInitializer().get(0);
+                                continue;
+                            }
                             expectedException = e;
                         } else if ("expectedExceptionsMessageRegExp".equals(assignParamName)) {
                             expectedExceptionMessageRegExp = e;
