@@ -148,7 +148,6 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                         cta.timeout
                 );
             }
-            maybeAddImport("org.junit.jupiter.api.Test");
 
             return super.visitMethodDeclaration(m, ctx);
         }
