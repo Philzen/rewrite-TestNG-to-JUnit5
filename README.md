@@ -1,3 +1,12 @@
+# TestNG to Junit5 recipe   [![Compatible with Java 8](https://img.shields.io/badge/Works%20on%20Java-8-seagreen?logo=openjdk&labelColor=snow&logoColor=black)](#)
+
+[![Build](https://github.com/Philzen/rewrite-recipe-testng-to-junit-jupiter/actions/workflows/ci.yml/badge.svg)](https://github.com/Philzen/rewrite-recipe-testng-to-junit-jupiter/actions/workflows/ci.yml)
+
+Converts [TestNG](https://testng.org/) test annotations and assertions to
+[Junit 5](https://junit.org/junit5/docs/current/user-guide/).
+
+Inspired by the [Migrate JUnit 4 @Test annotations to JUnit 5](https://docs.openrewrite.org/recipes/java/testing/junit5/updatetestannotation) recipe
+
 ## Rewrite recipe starter
 
 This repository serves as a template for building your own recipe JARs and publishing them to a repository where they can be applied on [app.moderne.io](https://app.moderne.io) against all the public OSS code that is included there.
