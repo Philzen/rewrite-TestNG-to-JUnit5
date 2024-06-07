@@ -146,7 +146,6 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 maybeAddImport("org.junit.jupiter.api.Timeout");
                 maybeAddImport("java.util.concurrent.TimeUnit");
             }
-            maybeAddImport("org.junit.jupiter.api.Test");
 
             return super.visitMethodDeclaration(m, ctx);
         }
