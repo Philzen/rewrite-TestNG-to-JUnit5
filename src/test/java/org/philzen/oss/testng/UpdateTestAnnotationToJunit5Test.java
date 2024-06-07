@@ -16,7 +16,6 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
     }
 
     // TODO @Test(dataProvider = "…")
-    // TODO @Test(description = "…") → org.junit.jupiter.api.DisplayName
     // TODO inner `public static class` → `@org.junit.jupiter.api.Nested static class`
     // TODO @Test(groups = {"…"}) → org.junit.jupiter.api.Tag
 
@@ -405,6 +404,102 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
                         @Test public void shouldDoStuff() {
                             //
                         }
+                    }
+                }
+                """
+              )
+            );
+        }
+    }
+
+    @Nested class Attribute_description {
+
+        @Test void isMigratedToDisplayNameAnnotation_whenNotEmpty() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(description = "A test that tests something")
+                    public void test() {
+                        // some content
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.DisplayName;
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @DisplayName("A test that tests something")
+                    @Test
+                    public void test() {
+                        // some content
+                    }
+                }
+                """
+              )
+            );
+        }
+
+        @SuppressWarnings("DefaultAnnotationParam")
+        @Test void isIgnored_whenEmpty() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(description = "")
+                    public void test() {
+                        // some content
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                        // some content
+                    }
+                }
+                """
+              )
+            );
+        }
+
+        @Test void isIgnored_whenNull() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(description = null)
+                    public void test() {
+                        // some content
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                        // some content
                     }
                 }
                 """

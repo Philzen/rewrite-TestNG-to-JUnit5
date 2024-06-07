@@ -59,6 +59,11 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
 
         private static final AnnotationMatcher TESTNG_TEST = new AnnotationMatcher("@org.testng.annotations.Test");
 
+        private final JavaTemplate displayNameAnnotation = JavaTemplate
+                .builder("@DisplayName(#{any(java.lang.String)})")
+                .imports("org.junit.jupiter.api.DisplayName")
+                .javaParser(javaParser()).build();
+
         private final JavaTemplate disabledAnnotation = JavaTemplate
                 .builder("@Disabled")
                 .imports("org.junit.jupiter.api.Disabled")
@@ -128,6 +133,16 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 return super.visitMethodDeclaration(method, ctx);
             }
 
+            if (cta.description != null && !J.Literal.isLiteralValue(cta.description, "")) {
+                m = displayNameAnnotation
+                .apply(
+                    updateCursor(m),
+                    m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
+                    cta.description
+                );
+                maybeAddImport("org.junit.jupiter.api.DisplayName");
+            }
+
             if (cta.enabled instanceof J.Literal && ((J.Literal) cta.enabled).getValue() == Boolean.FALSE) {
                 m = disabledAnnotation.apply(
                         updateCursor(m),
@@ -181,7 +196,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             private boolean found;
 
             @Nullable
-            Expression enabled, expectedException, expectedExceptionMessageRegExp, timeout;
+            Expression description, enabled, expectedException, expectedExceptionMessageRegExp, timeout;
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext ctx) {
@@ -200,7 +215,9 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                         final J.Assignment assign = (J.Assignment) arg;
                         final String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
                         final Expression e = assign.getAssignment();
-                        if ("enabled".equals(assignParamName)) {
+                        if ("description".equals(assignParamName) && !JavaType.Primitive.Null.equals(e.getType())) {
+                            description = e;
+                        } else if ("enabled".equals(assignParamName)) {
                             enabled = e;
                         } else if ("expectedExceptions".equals(assignParamName)) {
                             if (e instanceof J.NewArray && ((J.NewArray) e).getInitializer() != null) {
