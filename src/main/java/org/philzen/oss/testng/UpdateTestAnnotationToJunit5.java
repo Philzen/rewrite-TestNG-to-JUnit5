@@ -74,6 +74,11 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 .builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
                 .javaParser(javaParser()).build();
 
+        private final JavaTemplate tagAnnotation = JavaTemplate
+                .builder("@Tag(#{any(java.lang.String)})")
+                .imports("org.junit.jupiter.api.Tag")
+                .javaParser(javaParser()).build();
+
         private final JavaTemplate timeoutAnnotation = JavaTemplate
                 .builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)")
                 .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
@@ -182,6 +187,27 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 }
             }
 
+            if (cta.groups != null) {
+                maybeAddImport("org.junit.jupiter.api.Tag");
+                if (cta.groups instanceof J.Literal && !J.Literal.isLiteralValue(cta.groups, "")) {
+                    m = tagAnnotation.apply(
+                            updateCursor(m),
+                            m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName).reversed()),
+                            cta.groups
+                    );
+                } else if (cta.groups instanceof J.NewArray && ((J.NewArray) cta.groups).getInitializer() != null) {
+                    final List<Expression> groups = ((J.NewArray) cta.groups).getInitializer();
+                    for (Expression group : groups) {
+                        if (group instanceof J.Empty) continue;
+                        m = tagAnnotation.apply(
+                                updateCursor(m),
+                                m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName).reversed()),
+                                group
+                        );
+                    }
+                }
+            }
+
             if (cta.timeout != null) {
                 maybeAddImport("java.util.concurrent.TimeUnit");
                 maybeAddImport("org.junit.jupiter.api.Timeout");
@@ -200,7 +226,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             private boolean found;
 
             @Nullable
-            Expression description, enabled, expectedException, expectedExceptionMessageRegExp, timeout;
+            Expression description, enabled, expectedException, expectedExceptionMessageRegExp, groups, timeout;
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext ctx) {
@@ -229,6 +255,8 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                                 ? e : Objects.requireNonNull(((J.NewArray) e).getInitializer()).get(0);
                         } else if ("expectedExceptionsMessageRegExp".equals(assignParamName)) {
                             expectedExceptionMessageRegExp = e;
+                        } else if ("groups".equals(assignParamName)) {
+                            groups = e;
                         } else if ("timeOut".equals(assignParamName)) {
                             timeout = e;
                         }
