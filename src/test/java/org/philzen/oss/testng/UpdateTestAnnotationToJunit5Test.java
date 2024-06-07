@@ -374,12 +374,73 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
         }
     }
 
+    @Nested class Attribute_description {
+
+        @Test void isMigratedToDisplayNameAnnotation_whenNotEmpty() {
+            // language=java
+            rewriteRun(java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(description = "A test that tests something")
+                    public void test() {
+                        // some content
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.DisplayName;
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    @DisplayName("A test that tests something")
+                    public void test() {
+                        // some content
+                    }
+                }
+                """
+            ));
+        }
+
+        @SuppressWarnings("DefaultAnnotationParam")
+        @Test void isIgnored_whenEmpty() {
+            // language=java
+            rewriteRun(java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(description = "")
+                    public void test() {
+                        // some content
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Test
+                    public void test() {
+                        // some content
+                    }
+                }
+                """
+            ));
+        }
+    }
+
     @Nested class Attribute_enabled {
 
         @Test void isMigratedToDisabledAnnotation_whenFalse() {
             // language=java
-            rewriteRun(
-              java(
+            rewriteRun(java(
                 """
                 import org.testng.annotations.Test;
                 
@@ -397,15 +458,14 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
                 
                 public class MyTest {
                 
-                    @Disabled
                     @Test
+                    @Disabled
                     public void test() {
                         // some content
                     }
                 }
                 """
-              )
-            );
+            ));
         }
     }
 
