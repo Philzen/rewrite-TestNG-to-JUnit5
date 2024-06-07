@@ -374,6 +374,41 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
         }
     }
 
+    @Nested class Attribute_enabled {
+
+        @Test void isMigratedToDisabledAnnotation_whenFalse() {
+            // language=java
+            rewriteRun(
+              java(
+                """
+                import org.testng.annotations.Test;
+                
+                public class MyTest {
+                
+                    @Test(enabled = false)
+                    public void test() {
+                        // some content
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Disabled;
+                import org.junit.jupiter.api.Test;
+                
+                public class MyTest {
+                
+                    @Disabled
+                    @Test
+                    public void test() {
+                        // some content
+                    }
+                }
+                """
+              )
+            );
+        }
+    }
+
     @Nested class Attribute_expectedExceptions {
 
         @Test void isMigratedToBodyWrappedInAssertThrows_forLiteralJavaExceptionThrown() {

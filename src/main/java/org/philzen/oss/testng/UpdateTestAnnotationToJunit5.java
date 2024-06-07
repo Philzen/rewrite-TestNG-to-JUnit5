@@ -60,6 +60,11 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
 
         private static final AnnotationMatcher TESTNG_TEST = new AnnotationMatcher("@org.testng.annotations.Test");
 
+        private final JavaTemplate disabledAnnotation = JavaTemplate
+                .builder("@Disabled")
+                .imports("org.junit.jupiter.api.Disabled")
+                .javaParser(javaParser()).build();
+
         private final JavaTemplate junitExecutable = JavaTemplate
                 .builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
                 .javaParser(javaParser()).build();
@@ -124,7 +129,16 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 return super.visitMethodDeclaration(method, ctx);
             }
 
+            if (J.Literal.isLiteralValue(cta.enabled, Boolean.FALSE)) {
+                maybeAddImport("org.junit.jupiter.api.Disabled");
+                m = disabledAnnotation.apply(
+                        updateCursor(m),
+                        m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))
+                );
+            }
+
             if (cta.expectedException instanceof J.FieldAccess
+                // TestNG actually allows any type of Class here, however anything but a Throwable doesn't make sense 
                 && TypeUtils.isAssignableTo("java.lang.Throwable", ((J.FieldAccess) cta.expectedException).getTarget().getType()))
             {
                 m = junitExecutable.apply(updateCursor(m), m.getCoordinates().replaceBody(), m.getBody());
@@ -172,7 +186,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             private boolean found;
 
             @Nullable
-            Expression expectedException, expectedExceptionMessageRegExp, timeout;
+            Expression enabled, expectedException, expectedExceptionMessageRegExp, timeout;
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext ctx) {
@@ -191,7 +205,9 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                         final J.Assignment assign = (J.Assignment) arg;
                         final String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
                         final Expression e = assign.getAssignment();
-                        if ("expectedExceptions".equals(assignParamName)) {
+                        if ("enabled".equals(assignParamName)) {
+                            enabled = e;
+                        } else if ("expectedExceptions".equals(assignParamName)) {
                             // if attribute was given in { array form }, pick the first element (null is not allowed)
                             expectedException = !(e instanceof J.NewArray)
                                 ? e : Objects.requireNonNull(((J.NewArray) e).getInitializer()).get(0);
