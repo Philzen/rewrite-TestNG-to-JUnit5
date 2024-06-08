@@ -1,0 +1,12 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: org.philzen.oss.testng.MigrateToJunit5
+tags: [TestNG, JUnit5, Jupiter, JUnit]
+displayName: JUnit Jupiter migration from TestNG
+description: Migrates TestNG tests to JUnit Jupiter.
+estimatedEffortPerOccurrence: PT20S
+preconditions:
+- org.openrewrite.FindSourceFiles:
+    filePattern: "**/*.java"
+recipeList:
+- org.philzen.oss.testng.UpdateTestAnnotationToJunit5
+- org.openrewrite.java.testing.junit5.AddMissingNested
