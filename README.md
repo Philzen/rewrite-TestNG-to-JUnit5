@@ -1,11 +1,20 @@
-# TestNG to Junit5 recipe
+# OpenRewrite: JUnit Jupiter migration from TestNG
 
 [![Build](https://github.com/Philzen/rewrite-recipe-testng-to-junit-jupiter/actions/workflows/ci.yml/badge.svg)](https://github.com/Philzen/rewrite-recipe-testng-to-junit-jupiter/actions/workflows/ci.yml)
 
-Converts [TestNG](https://testng.org/) test annotations and assertions to
-[Junit 5](https://junit.org/junit5/docs/current/user-guide/).
+Migrate a project's [TestNG](https://testng.org/)-based test suite to [Junit 5](https://junit.org/junit5/docs/current/user-guide/) with this OpenRewrite recipe list. The missing 
+counterpart to the [JUnit Jupiter migration from JUnit 4.x](https://docs.openrewrite.org/recipes/java/testing/junit5/junit4to5migration) recipe list.
 
-Inspired by the [Migrate JUnit 4 @Test annotations to JUnit 5](https://docs.openrewrite.org/recipes/java/testing/junit5/updatetestannotation) recipe
+It will:
+- migrate all `@Test` and `@DataSource` method annotations to JUnit5 <!-- TODO: list mappings -->
+- apply `@Nested` where required (so tests in inner classes will execute)
+- migrate all lifecycle annotations (`@Before…`, `@After`) from TestNG to JUnit5 
+- update the dependencies
+- and finally apply a handful of housekeeping optimizations from the [JUnit Jupiter best practices](https://docs.openrewrite.org/recipes/java/testing/junit5/junit5bestpractices) recipe list
+
+See the [complete list of recipes](./src/main/resources/META-INF/rewrite/rewrite.yml).
+
+Code inspired / kickstarted by [Migrate JUnit 4 @Test annotations to JUnit 5](https://docs.openrewrite.org/recipes/java/testing/junit5/updatetestannotation) implementation.
 
 ## Rewrite recipe starter
 
