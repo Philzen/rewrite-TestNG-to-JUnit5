@@ -1,11 +1,153 @@
-# TestNG to Junit5 recipe
+# OpenRewrite: JUnit Jupiter migration from TestNG
 
 [![Build](https://github.com/Philzen/rewrite-recipe-testng-to-junit-jupiter/actions/workflows/ci.yml/badge.svg)](https://github.com/Philzen/rewrite-recipe-testng-to-junit-jupiter/actions/workflows/ci.yml)
 
-Converts [TestNG](https://testng.org/) test annotations and assertions to
-[Junit 5](https://junit.org/junit5/docs/current/user-guide/).
+Migrate a project's [TestNG](https://testng.org/)-based test suite to [Junit 5](https://junit.org/junit5/docs/current/user-guide/) with this OpenRewrite recipe list. The missing 
+counterpart to the [JUnit Jupiter migration from JUnit 4.x](https://docs.openrewrite.org/recipes/java/testing/junit5/junit4to5migration) recipe list.
 
-Inspired by the [Migrate JUnit 4 @Test annotations to JUnit 5](https://docs.openrewrite.org/recipes/java/testing/junit5/updatetestannotation) recipe
+It will:
+- migrate all `@Test` and `@DataSource` method annotations to JUnit5 <!-- TODO: list mappings -->
+- apply `@Nested` where required (so tests in inner classes will execute)
+- migrate all lifecycle annotations (`@Before…`, `@After`) from TestNG to JUnit5 
+- update the dependencies
+- and finally apply a handful of housekeeping optimizations from the [JUnit Jupiter best practices](https://docs.openrewrite.org/recipes/java/testing/junit5/junit5bestpractices) recipe list
+
+See the [complete list of recipes](./src/main/resources/META-INF/rewrite/rewrite.yml).
+
+## Implementation status
+
+|                    | Annotation /<br>Feature                         |                                                       |
+|--------------------|-------------------------------------------------|-------------------------------------------------------|
+| :heavy_check_mark: | `@Test`                                         | [:information_source:](#test-tag)                     |
+| :heavy_check_mark: | `@Test(description = "%s")`                     | [:information_source:](#attribute_description)        |
+| :heavy_check_mark: | `@Test(enabled = false)`                        | [:information_source:](#attribute_enabled_false)      |
+| :heavy_check_mark: | `@Test(expectedExceptions = Exception.class)`   | [:information_source:](#attribute_expectedExceptions) |
+| :heavy_check_mark: | `@Test(expectedExceptionsMessageRegExp = "%s")` |                                                       | 
+| :heavy_check_mark: | `@Test(groups = "%s")`                          |                                                       |
+| :heavy_check_mark: | `@Test(timeOut = "%s")`                         |                                                       |
+| :heavy_check_mark: | Inner classes                                   |                                                       |
+| :hammer:           | `@DataProvider`                                 |                                                       |
+| :hammer:           | Lifecycle annotations                           |                                                       |
+| :hammer:           | Inner classes                                   |                                                       |
+| :hammer:           | Maven dependency update                         |                                                       |
+| :hammer:           | Gradle dependency update                        |                                                       |
+| :thinking:         | `@Test(enabled = CONSTANT_EXPRESSION)`          |                                                       |
+| :thinking:         | `@Factory`                                      |                                                       |
+| :grey_question:    | `@Test(priority = Int)`                         |                                                       |
+| :interrobang:      | Other `@Test` attributes                        |                                                       |
+
+
+## Migration details
+
+### `@Test` tag
+
+<table>
+<tr align=left><th colspan=2><code>@Test</code> (without Attributes)</th></tr>
+<tr valign=top><td><sup>TestNG</sup><pre lang="java">@Test</pre></td><td><sup>JUnit 5</sup><pre lang="java">@Test</pre></td></tr>
+<tr align=left><th colspan=2><a id="attribute_description"></a>Description</tr>
+<tr valign=top><td><sup>TestNG</sup><pre lang="java">@Test(description = "Foo")</pre></td>
+<td><sup>JUnit 5</sup><pre lang="java">
+@Test
+@DisplayName("Foo")
+</pre></td>
+</tr>
+<tr align=left><th colspan=2><a id="attribute_enabled_false"></a>Disabled Tests</th></tr>
+<tr valign=top><td><sup>TestNG</sup><pre lang="java">@Test(enabled = false)</pre></td>
+<td><sup>JUnit 5</sup><pre lang="java">
+@Test
+@Disabled
+</pre></td>
+</tr>
+<tr align=left><th colspan=2><a id="attribute_expectedExceptions"></a>expectedExceptions</th></tr>
+<tr valign=top><td><sup>TestNG</sup><pre lang="java">
+@Test(
+  expectedExceptions = Error.class
+)
+public void throws() {  /* throwy code */  }
+</pre></td>
+<td><sup>JUnit 5</sup><pre lang="java">
+@Test
+public void throws() {
+  assertThrows(Error.class, () -> { /* throwy code */ })
+}
+</pre></td>
+</tr>
+<tr align=left><th colspan=2>expectedExceptionsMessageRegExp</th></tr>
+<tr valign=top>
+<td>
+<sup>TestNG</sup>
+<pre lang="java">
+@Test(
+  expectedExceptions = Oops.class, 
+  expectedExceptionsMessageRegExp = "boom.*!"
+)
+public void test() { /* throwy code */ }
+</pre></td>
+<td>
+<sup>JUnit 5</sup>
+<pre lang="java">
+@Test
+public void test() {
+  Throwable thrown = assertThrows(Oops.class, () -> { /* throwy code */ });
+  assertTrue(thrown.getMessage().matches("boom.*!"));
+}
+</pre></td>
+</tr>
+<tr align=left><th colspan=2>groups</th></tr>
+<tr valign=top><td><sup>TestNG</sup><pre lang="java">
+@Test(
+  groups = { "slow", "flaky" }
+)
+</pre></td>
+<td><sup>JUnit 5</sup><pre lang="java">
+@Test
+@Tag("slow")
+@Tag("flaky")
+</pre></td>
+</tr>
+<tr align=left><th colspan=2>timeOut</th></tr>
+<tr valign=top><td><sup>TestNG</sup><pre lang="java">
+@Test(timeOut = 42)
+</pre></td>
+<td><sup>JUnit 5</sup><pre lang="java">
+@Test
+@Timeout(value = 42, unit = TimeUnit.MILLISECONDS)
+</pre></td>
+</tr>
+</table>
+
+### Tests in inner classes
+
+<table>
+<tr></tr>
+<tr valign=top>
+<td><sup>TestNG</sup>
+<pre lang="java">
+public class MyTest {
+  public class SomeFeature {
+    @Test void doesStuff() { /* … */ }
+  }
+}
+</pre></td>
+<td>
+<sup>JUnit 5</sup>
+<pre lang="java">
+public class MyTest {
+  @Nested
+  public class SomeFeature {
+    @Test void doesStuff() { /* … */ }
+  }
+}
+</pre></td>
+</tr>
+</table>
+
+This modification is done through the official [org.openrewrite.java.testing.junit5.AddMissingNested](https://docs.openrewrite.org/recipes/java/testing/junit5/addmissingnested) recipe.
+
+
+Code inspired / kickstarted by [Migrate JUnit 4 @Test annotations to JUnit 5](https://docs.openrewrite.org/recipes/java/testing/junit5/updatetestannotation) implementation.
+
+---
 
 ## Rewrite recipe starter
 
