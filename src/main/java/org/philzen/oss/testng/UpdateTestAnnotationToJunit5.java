@@ -39,16 +39,23 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Update usages of TestNG's `@org.testng.annotations.Test` annotation to JUnit 5's `@org.junit.jupiter.api.Test` annotation.";
+        return String.format(
+                "Update usages of TestNG's `@%s` annotation to JUnit 5's `@%s` annotation.", TESTNG_TYPE, JUPITER_TYPE
+        );
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(Preconditions.or(
-                new UsesType<>("org.testng.annotations.Test", false),
-                new FindImports("org.testng.annotations.Test", null).getVisitor()
+                new UsesType<>(TESTNG_TYPE, false),
+                new FindImports(TESTNG_TYPE, null).getVisitor()
         ), new UpdateTestAnnotationToJunit5Visitor());
     }
+
+    public static final String TESTNG_TYPE = "org.testng.annotations.Test";
+    public static final String JUPITER_API_NAMESPACE = "org.junit.jupiter.api";
+    public static final String JUPITER_TYPE = JUPITER_API_NAMESPACE + ".Test";
+    public static final String JUPITER_ASSERTIONS_TYPE = JUPITER_API_NAMESPACE + ".Assertions";
 
     // inspired by https://github.com/openrewrite/rewrite-testing-frameworks/blob/4e8ba68b2a28a180f84de7bab9eb12b4643e342e/src/main/java/org/openrewrite/java/testing/junit5/UpdateTestAnnotation.java#
     private static class UpdateTestAnnotationToJunit5Visitor extends JavaIsoVisitor<ExecutionContext> {
@@ -57,38 +64,38 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
 
         private final JavaTemplate displayNameAnnotation = JavaTemplate
                 .builder("@DisplayName(#{any(java.lang.String)})")
-                .imports("org.junit.jupiter.api.DisplayName")
+                .imports(JUPITER_API_NAMESPACE + ".DisplayName")
                 .javaParser(Parser.jupiter()).build();
 
         private final JavaTemplate disabledAnnotation = JavaTemplate
                 .builder("@Disabled")
-                .imports("org.junit.jupiter.api.Disabled")
+                .imports(JUPITER_API_NAMESPACE + ".Disabled")
                 .javaParser(Parser.jupiter()).build();
 
         private final JavaTemplate junitExecutable = JavaTemplate
-                .builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
+                .builder(JUPITER_API_NAMESPACE + ".function.Executable o = () -> #{};")
                 .javaParser(Parser.jupiter()).build();
 
         private final JavaTemplate tagAnnotation = JavaTemplate
                 .builder("@Tag(#{any(java.lang.String)})")
-                .imports("org.junit.jupiter.api.Tag")
+                .imports(JUPITER_API_NAMESPACE + ".Tag")
                 .javaParser(Parser.jupiter()).build();
 
         private final JavaTemplate timeoutAnnotation = JavaTemplate
                 .builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)")
-                .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
+                .imports(JUPITER_API_NAMESPACE + ".Timeout", "java.util.concurrent.TimeUnit")
                 .javaParser(Parser.jupiter()).build();
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
-            if (!c.findType("org.testng.annotations.Test").isEmpty()) {
+            if (!c.findType(TESTNG_TYPE).isEmpty()) {
                 // Update other references like `Test.class`.
-                c = (J.CompilationUnit) new ChangeType("org.testng.annotations.Test", "org.junit.jupiter.api.Test", true)
+                c = (J.CompilationUnit) new ChangeType(TESTNG_TYPE, JUPITER_TYPE, true)
                         .getVisitor().visitNonNull(c, ctx);
             }
 
-            maybeRemoveImport("org.testng.annotations.Test");
+            maybeRemoveImport(TESTNG_TYPE);
             doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
                 @Override
                 public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
@@ -100,7 +107,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
 
                 @Override
                 public J.Import visitImport(J.Import anImport, ExecutionContext ctx) {
-                    if ("org.testng.annotations.Test".equals(anImport.getTypeName())) {
+                    if (TESTNG_TYPE.equals(anImport.getTypeName())) {
                         return Markup.error(anImport, new IllegalStateException("This import should have been removed by this recipe."));
                     }
                     return anImport;
@@ -108,7 +115,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
 
                 @Override
                 public JavaType visitType(@Nullable JavaType javaType, ExecutionContext ctx) {
-                    if (TypeUtils.isOfClassType(javaType, "org.testng.annotations.Test")) {
+                    if (TypeUtils.isOfClassType(javaType, TESTNG_TYPE)) {
                         getCursor().putMessageOnFirstEnclosing(J.class, "danglingTestRef", true);
                     }
                     return javaType;
@@ -117,7 +124,9 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 @Override
                 public J postVisit(J tree, ExecutionContext ctx) {
                     if (getCursor().getMessage("danglingTestRef", false)) {
-                        return Markup.warn(tree, new IllegalStateException("This still has a type of `org.testng.annotations.Test`"));
+                        return Markup.warn(tree, new IllegalStateException(
+                                String.format("This still has a type of `%s`", TESTNG_TYPE)
+                        ));
                     }
                     return tree;
                 }
@@ -135,7 +144,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             }
 
             if (cta.description != null && !J.Literal.isLiteralValue(cta.description, "")) {
-                maybeAddImport("org.junit.jupiter.api.DisplayName");
+                maybeAddImport(JUPITER_API_NAMESPACE + ".DisplayName");
                 m = displayNameAnnotation.apply(
                     updateCursor(m),
                     m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName).reversed()),
@@ -144,7 +153,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             }
 
             if (J.Literal.isLiteralValue(cta.enabled, Boolean.FALSE)) {
-                maybeAddImport("org.junit.jupiter.api.Disabled");
+                maybeAddImport(JUPITER_API_NAMESPACE + ".Disabled");
                 m = disabledAnnotation.apply(
                         updateCursor(m),
                         m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName).reversed())
@@ -162,18 +171,18 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                         ((J.VariableDeclarations) body.getStatements().get(0))
                         .getVariables().get(0).getInitializer();
 
-                maybeAddImport("org.junit.jupiter.api.Assertions");
+                maybeAddImport(JUPITER_ASSERTIONS_TYPE);
                 final List<Object> parameters = Arrays.asList(cta.expectedException, lambda);
                 final String code = "Assertions.assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});";
                 if (!(cta.expectedExceptionMessageRegExp instanceof J.Literal)) {
                     m = JavaTemplate.builder(code).javaParser(Parser.jupiter())
-                        .imports("org.junit.jupiter.api.Assertions").build()
+                        .imports(JUPITER_ASSERTIONS_TYPE).build()
                         .apply(updateCursor(m), m.getCoordinates().replaceBody(), parameters.toArray());
                 } else {
                     m = JavaTemplate.builder(
                             "final Throwable thrown = " + code + System.lineSeparator()
                                 + "Assertions.assertTrue(thrown.getMessage().matches(#{any(java.lang.String)}));"
-                        ).javaParser(Parser.jupiter()).imports("org.junit.jupiter.api.Assertions").build()
+                        ).javaParser(Parser.jupiter()).imports(JUPITER_ASSERTIONS_TYPE).build()
                         .apply(
                             updateCursor(m), 
                             m.getCoordinates().replaceBody(), 
@@ -183,7 +192,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             }
 
             if (cta.groups != null) {
-                maybeAddImport("org.junit.jupiter.api.Tag");
+                maybeAddImport(JUPITER_API_NAMESPACE + ".Tag");
                 if (cta.groups instanceof J.Literal && !J.Literal.isLiteralValue(cta.groups, "")) {
                     m = tagAnnotation.apply(
                             updateCursor(m),
@@ -205,7 +214,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
 
             if (cta.timeout != null) {
                 maybeAddImport("java.util.concurrent.TimeUnit");
-                maybeAddImport("org.junit.jupiter.api.Timeout");
+                maybeAddImport(JUPITER_API_NAMESPACE + ".Timeout");
                 m = timeoutAnnotation.apply(
                         updateCursor(m),
                         m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
@@ -259,13 +268,13 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 }
 
                 if (a.getAnnotationType() instanceof J.FieldAccess) {
-                    return JavaTemplate.builder("@org.junit.jupiter.api.Test")
+                    return JavaTemplate.builder("@" + JUPITER_TYPE)
                             .javaParser(Parser.jupiter())
                             .build()
                             .apply(getCursor(), a.getCoordinates().replace());
                 } else {
                     return a.withArguments(null)
-                            .withType(JavaType.ShallowClass.build("org.junit.jupiter.api.Test"));
+                            .withType(JavaType.ShallowClass.build(JUPITER_TYPE));
                 }
             }
         }
