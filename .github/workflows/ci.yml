@@ -45,15 +45,18 @@ jobs:
             --update-snapshots
             --fail-at-end
             --batch-mode
-        run: mvn ${{ env.MAVEN_SWITCHES }} -P coverage jacoco:prepare-agent verify jacoco:report
+        run: mvn ${{ env.MAVEN_SWITCHES }} -P coverage verify
 
-        # Upload JaCoCo XML report as artifact
-        # https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts#uploading-build-and-test-artifacts
-      - name: Upload code coverage results
+      - name: Upload maven build result
         uses: actions/upload-artifact@v4
         with:
-          name: code-coverage-jacoco-xml
-          path: target/site/jacoco/jacoco.xml
+          name: maven-build-target-folder
+          path: target
+
+  call:
+    needs: [build]
+    uses: './.github/workflows/analyse.yml'
+    secrets: inherit
 
   publish-snapshots:
     needs: [build]
