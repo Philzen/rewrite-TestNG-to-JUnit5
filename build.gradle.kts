@@ -58,6 +58,11 @@ dependencies {
 
     // ↓ Classpath resource for MigrateTestNg* recipes
     testRuntimeOnly("org.testng:testng:latest.release")
+
+    // ↓ to allow using testing recipes in our recipe list
+    testRuntimeOnly("org.openrewrite.recipe:rewrite-testing-frameworks:latest.release") {
+        exclude("org.testcontainers", "testcontainers")
+    }
 }
 
 signing {
