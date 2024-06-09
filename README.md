@@ -1,6 +1,7 @@
 # TestNG to Junit5 recipe   [![Compatible with Java 8](https://img.shields.io/badge/Works%20on%20Java-8-seagreen?logo=openjdk&labelColor=snow&logoColor=black)](#)
 
 [![Build](https://github.com/Philzen/rewrite-recipe-testng-to-junit-jupiter/actions/workflows/ci.yml/badge.svg)](https://github.com/Philzen/rewrite-recipe-testng-to-junit-jupiter/actions/workflows/ci.yml)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Philzen_rewrite-recipe-testng-to-junit-jupiter&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Philzen_rewrite-recipe-testng-to-junit-jupiter)
 
 Converts [TestNG](https://testng.org/) test annotations and assertions to
 [Junit 5](https://junit.org/junit5/docs/current/user-guide/).
