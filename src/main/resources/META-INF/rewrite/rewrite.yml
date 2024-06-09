@@ -1,12 +1,29 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.philzen.oss.testng.MigrateToJunit5
-tags: [TestNG, JUnit5, Jupiter, JUnit]
+tags: [TestNG, JUnit5, Jupiter, JUnit, ]
 displayName: JUnit Jupiter migration from TestNG
 description: Migrates TestNG tests to JUnit Jupiter.
-estimatedEffortPerOccurrence: PT20S
+estimatedEffortPerOccurrence: PT2H
 preconditions:
+#- org.openrewrite.java.search.IsLikelyTest
+- org.openrewrite.java.search.HasSourceSet:
+    sourceSet: test
 - org.openrewrite.FindSourceFiles:
     filePattern: "**/*.java"
 recipeList:
 - org.philzen.oss.testng.UpdateTestAnnotationToJunit5
 - org.openrewrite.java.testing.junit5.AddMissingNested
+- org.openrewrite.java.testing.junit5.CleanupJUnitImports
+- org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
+- org.openrewrite.maven.RemovePluginDependency:
+    pluginGroupId: org.apache.maven.plugins
+    pluginArtifactId: maven-surefire-plugin
+    groupId: org.apache.maven.surefire
+    artifactId: surefire-testng
+- org.openrewrite.java.dependencies.RemoveDependency:
+    groupId: org.testng
+    artifactId: testng
+- org.openrewrite.java.dependencies.RemoveDependency:
+    groupId: org.junit.support
+    artifactId: testng-engine
+- org.openrewrite.java.testing.junit5.AddJupiterDependencies
