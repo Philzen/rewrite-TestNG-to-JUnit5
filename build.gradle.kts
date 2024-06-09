@@ -58,6 +58,11 @@ dependencies {
 
     // ↓ Classpath resource for MigrateTestNg* recipes
     testRuntimeOnly("org.testng:testng:7.5.1")  // 7.5.x is the last Java 8 compatible version: https://github.com/testng-team/testng/issues/2775
+
+    // ↓ to allow using testing recipes in our recipe list
+    testRuntimeOnly("org.openrewrite.recipe:rewrite-testing-frameworks:latest.release") {
+        exclude("org.testcontainers", "testcontainers")
+    }
 }
 
 signing {
