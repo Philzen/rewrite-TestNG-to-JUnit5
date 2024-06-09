@@ -1,0 +1,45 @@
+name: SonarCloud
+on:
+  workflow_call:
+    inputs: {}
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'zulu' # Alternative distribution options are available.
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Download code coverage results
+        uses: actions/download-artifact@v4
+        with:
+          name: maven-build-target-folder
+          path: target
+      - name: Analyze project
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          MAVEN_OPTS: >-
+            -Dsonar.projectKey=Philzen_rewrite-recipe-testng-to-junit-jupiter
+            -Dsonar.organization=philzen
+            -Dsonar.host.url=https://sonarcloud.io
+        run: mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar ${{ env.MAVEN_OPTS }}
