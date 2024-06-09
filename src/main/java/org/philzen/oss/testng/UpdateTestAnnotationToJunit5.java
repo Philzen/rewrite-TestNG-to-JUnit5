@@ -9,7 +9,10 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.NonNullApi;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.*;
+import org.openrewrite.java.AnnotationMatcher;
+import org.openrewrite.java.ChangeType;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
@@ -17,6 +20,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markup;
+import org.philzen.oss.utils.Parser;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -38,15 +42,6 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
         return "Update usages of TestNG's `@org.testng.annotations.Test` annotation to JUnit 5's `@org.junit.jupiter.api.Test` annotation.";
     }
 
-    @Nullable
-    static private JavaParser.Builder<?, ?> javaParser;
-    static private JavaParser.Builder<?, ?> javaParser() {
-        if (javaParser == null) {
-            javaParser = JavaParser.fromJavaVersion().classpath("junit-jupiter-api");
-        }
-        return javaParser;
-    }
-
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(Preconditions.or(
@@ -63,26 +58,26 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
         private final JavaTemplate displayNameAnnotation = JavaTemplate
                 .builder("@DisplayName(#{any(java.lang.String)})")
                 .imports("org.junit.jupiter.api.DisplayName")
-                .javaParser(javaParser()).build();
+                .javaParser(Parser.jupiter()).build();
 
         private final JavaTemplate disabledAnnotation = JavaTemplate
                 .builder("@Disabled")
                 .imports("org.junit.jupiter.api.Disabled")
-                .javaParser(javaParser()).build();
+                .javaParser(Parser.jupiter()).build();
 
         private final JavaTemplate junitExecutable = JavaTemplate
                 .builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
-                .javaParser(javaParser()).build();
+                .javaParser(Parser.jupiter()).build();
 
         private final JavaTemplate tagAnnotation = JavaTemplate
                 .builder("@Tag(#{any(java.lang.String)})")
                 .imports("org.junit.jupiter.api.Tag")
-                .javaParser(javaParser()).build();
+                .javaParser(Parser.jupiter()).build();
 
         private final JavaTemplate timeoutAnnotation = JavaTemplate
                 .builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)")
                 .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
-                .javaParser(javaParser()).build();
+                .javaParser(Parser.jupiter()).build();
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
@@ -171,14 +166,14 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 final List<Object> parameters = Arrays.asList(cta.expectedException, lambda);
                 final String code = "Assertions.assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});";
                 if (!(cta.expectedExceptionMessageRegExp instanceof J.Literal)) {
-                    m = JavaTemplate.builder(code).javaParser(javaParser())
+                    m = JavaTemplate.builder(code).javaParser(Parser.jupiter())
                         .imports("org.junit.jupiter.api.Assertions").build()
                         .apply(updateCursor(m), m.getCoordinates().replaceBody(), parameters.toArray());
                 } else {
                     m = JavaTemplate.builder(
                             "final Throwable thrown = " + code + System.lineSeparator()
                                 + "Assertions.assertTrue(thrown.getMessage().matches(#{any(java.lang.String)}));"
-                        ).javaParser(javaParser()).imports("org.junit.jupiter.api.Assertions").build()
+                        ).javaParser(Parser.jupiter()).imports("org.junit.jupiter.api.Assertions").build()
                         .apply(
                             updateCursor(m), 
                             m.getCoordinates().replaceBody(), 
@@ -265,7 +260,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
 
                 if (a.getAnnotationType() instanceof J.FieldAccess) {
                     return JavaTemplate.builder("@org.junit.jupiter.api.Test")
-                            .javaParser(javaParser())
+                            .javaParser(Parser.jupiter())
                             .build()
                             .apply(getCursor(), a.getCoordinates().replace());
                 } else {
