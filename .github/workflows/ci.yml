@@ -36,8 +36,24 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           arguments: ${{ env.GRADLE_SWITCHES }} build test
-      - name: verify
-        run: mvn --show-version --no-transfer-progress --update-snapshots --fail-at-end --batch-mode -Dstyle.color=always verify
+      - name: "[Maven] Verify & generate JaCoCo XML"
+        env:
+          MAVEN_OPTS: '-Dstyle.color=always'
+          MAVEN_SWITCHES: >-
+            --show-version
+            --no-transfer-progress
+            --update-snapshots
+            --fail-at-end
+            --batch-mode
+        run: mvn ${{ env.MAVEN_SWITCHES }} -P coverage jacoco:prepare-agent verify jacoco:report
+
+        # Upload JaCoCo XML report as artifact
+        # https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts#uploading-build-and-test-artifacts
+      - name: Upload code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-jacoco-xml
+          path: target/site/jacoco/jacoco.xml
 
   publish-snapshots:
     needs: [build]
