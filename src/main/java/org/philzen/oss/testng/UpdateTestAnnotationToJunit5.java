@@ -6,7 +6,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.NonNullApi;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.AnnotationMatcher;
@@ -19,7 +18,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
-import org.openrewrite.marker.Markup;
+import org.philzen.oss.utils.AfterVisitor;
 import org.philzen.oss.utils.Parser;
 
 import java.util.Arrays;
@@ -96,41 +95,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             }
 
             maybeRemoveImport(TESTNG_TYPE);
-            doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
-                @Override
-                public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                    return cu.withClasses(ListUtils.map(cu.getClasses(), clazz -> (J.ClassDeclaration) visit(clazz, ctx)))
-                        // take one more pass over the imports now that we've had a chance to add warnings to all
-                        // uses of @Test through the rest of the source file
-                        .withImports(ListUtils.map(cu.getImports(), anImport -> (J.Import) visit(anImport, ctx)));
-                }
-
-                @Override
-                public J.Import visitImport(J.Import anImport, ExecutionContext ctx) {
-                    if (TESTNG_TYPE.equals(anImport.getTypeName())) {
-                        return Markup.error(anImport, new IllegalStateException("This import should have been removed by this recipe."));
-                    }
-                    return anImport;
-                }
-
-                @Override
-                public JavaType visitType(@Nullable JavaType javaType, ExecutionContext ctx) {
-                    if (TypeUtils.isOfClassType(javaType, TESTNG_TYPE)) {
-                        getCursor().putMessageOnFirstEnclosing(J.class, "danglingTestRef", true);
-                    }
-                    return javaType;
-                }
-
-                @Override
-                public J postVisit(J tree, ExecutionContext ctx) {
-                    if (getCursor().getMessage("danglingTestRef", false)) {
-                        return Markup.warn(tree, new IllegalStateException(
-                                String.format("This still has a type of `%s`", TESTNG_TYPE)
-                        ));
-                    }
-                    return tree;
-                }
-            });
+            doAfterVisit(new AfterVisitor(TESTNG_TYPE));
 
             return c;
         }
