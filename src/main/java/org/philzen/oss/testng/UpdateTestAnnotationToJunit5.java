@@ -232,15 +232,8 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                     }
                 }
 
-                if (a.getAnnotationType() instanceof J.FieldAccess) {
-                    return JavaTemplate.builder("@" + JUPITER_TYPE)
-                            .javaParser(Parser.jupiter())
-                            .build()
-                            .apply(getCursor(), a.getCoordinates().replace());
-                } else {
-                    return a.withArguments(null)
-                            .withType(JavaType.ShallowClass.build(JUPITER_TYPE));
-                }
+                // change @Test annotation type to JUnit 5 and remove all attribute arguments
+                return a.withArguments(null).withType(JavaType.ShallowClass.build(JUPITER_TYPE));
             }
         }
     }
