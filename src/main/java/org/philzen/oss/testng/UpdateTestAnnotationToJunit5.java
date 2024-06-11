@@ -6,6 +6,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.NonNullApi;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.AnnotationMatcher;
@@ -19,12 +20,10 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.philzen.oss.utils.AfterVisitor;
+import org.philzen.oss.utils.Cleanup;
 import org.philzen.oss.utils.Parser;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Value
 @NonNullApi
@@ -101,11 +100,46 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
         }
 
         @Override
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, 
+                                                        ExecutionContext executionContext) {
+
+            final Optional<J.Annotation> maybeAnnotation = classDecl.getLeadingAnnotations()
+                    .stream().filter(TESTNG_TEST::matches).findFirst();
+
+            if (maybeAnnotation.isPresent()) {
+                classDecl = Cleanup.removeAnnotation(classDecl, maybeAnnotation.get());
+
+                getCursor().putMessage(
+                    // don't know a good way to determine if annotation is fully qualified, therefore determining
+                    // it from the toString() method and passing on a code template for the JavaTemplate.Builder
+                    "ADD_TO_ALL_METHODS", "@" + (maybeAnnotation.get().toString().contains(".") ? JUPITER_TYPE : "Test")
+                );
+            }
+
+            return super.visitClassDeclaration(classDecl, executionContext);
+        }
+
+        @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             final ChangeTestAnnotation cta = new ChangeTestAnnotation();
             J.MethodDeclaration m = (J.MethodDeclaration) cta.visitNonNull(method, ctx, getCursor().getParentOrThrow());
+            
+            // method identity changes when `@Test` annotation was found and migrated by ChangeTestAnnotation
             if (m == method) {
-                return super.visitMethodDeclaration(method, ctx);
+                final boolean isContainedInInnerClass = 
+                    method.getMethodType() == null  // ← (=true) not really, but in this fringe case it's better not to make a replacement 
+                    || method.getMethodType().getDeclaringType().getOwningClass() != null;
+                final boolean isPublic = method.getModifiers().stream().anyMatch(mod -> mod.toString().equals("public"));
+                final String neededOnAllMethods = getCursor().getNearestMessage("ADD_TO_ALL_METHODS");
+                if (neededOnAllMethods == null || !isPublic || isContainedInInnerClass) {
+                    return super.visitMethodDeclaration(method, ctx);
+                }
+                
+                return JavaTemplate.builder(neededOnAllMethods).imports(JUPITER_TYPE)
+                    // for unknown reasons recipe:run on other projects will fail with "Unable to construct JavaParser" 
+                    // ↓ if using Jupiter-only classpath Parser (strangely, all tests pass)
+                    .javaParser(Parser.runtime()).build()
+                    .apply(getCursor(), method.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName).reversed()));
             }
 
             if (cta.description != null && !J.Literal.isLiteralValue(cta.description, "")) {

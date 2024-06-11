@@ -17,6 +17,318 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
 
     @Nested class NoAttributes {
 
+        @Nested class onClass {
+
+            @Test void isMigratedToMethods() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.annotations.Test;
+                    
+                    @Test
+                    public class BazTest {
+                    
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    
+                        public void shouldDoMoreStuff() {
+                            //
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Test;
+                    
+                    public class BazTest {
+                    
+                        @Test
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    
+                        @Test
+                        public void shouldDoMoreStuff() {
+                            //
+                        }
+                    }
+                    """
+                ));
+            }
+
+            @Test void isMigratedToMethods_preservingOtherAnnotations() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.annotations.Test;
+                    
+                    @Deprecated @Test
+                    public class BazTest {
+                    
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Test;
+                    
+                    @Deprecated
+                    public class BazTest {
+                    
+                        @Test
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    }
+                    """
+                ));
+            }
+
+            /**
+             * Non-public method are executed only if they are explicitly annotated with `@Test`
+             */
+            @Test void isMigratedOnlyToPublicMethods() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.annotations.Test;
+                    
+                    @Test
+                    public class BazTest {
+                    
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    
+                        void thisAintNoTest() {
+                            //
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Test;
+                    
+                    public class BazTest {
+                    
+                        @Test
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    
+                        void thisAintNoTest() {
+                            //
+                        }
+                    }
+                    """
+                ));
+            }
+
+            @Test void isMigratedToMethods_whenClassIsTyped() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.annotations.Test;
+                    
+                    @Test
+                    class BazTest<String> {
+                    
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    
+                        public void shouldDoMoreStuff() {
+                            //
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Test;
+                    
+                    class BazTest<String> {
+                    
+                        @Test
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    
+                        @Test
+                        public void shouldDoMoreStuff() {
+                            //
+                        }
+                    }
+                    """
+                ));
+            }
+
+            @Test void isMigratedToMethods_whenFullyQualified() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    package de.foo.bar;
+                    
+                    @org.testng.annotations.Test
+                    public class BazTest {
+                    
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    
+                        public void shouldDoMoreStuff() {
+                            //
+                        }
+                    }
+                    """,
+                    """
+                    package de.foo.bar;
+                    
+                    public class BazTest {
+                    
+                        @org.junit.jupiter.api.Test
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    
+                        @org.junit.jupiter.api.Test
+                        public void shouldDoMoreStuff() {
+                            //
+                        }
+                    }
+                    """
+                ));
+            }
+
+            @Test void migrationPreservesOtherAnnotations() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.annotations.Test;
+                    
+                    @Test
+                    @Deprecated
+                    class BazTest {
+                    
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Test;
+                    
+                    @Deprecated
+                    class BazTest {
+                    
+                        @Test
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    }
+                    """
+                ));
+            }
+
+            @Test void doesNotOverwriteMethodLevelTestAnnotations() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.annotations.Test;
+                    
+                    @Test
+                    class BazTest {
+                    
+                        public void shouldDoStuff() { }
+                    
+                        @Test(enabled = false)
+                        public void shouldDoMoreStuff() { }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Disabled;
+                    import org.junit.jupiter.api.Test;
+                    
+                    class BazTest {
+                    
+                        @Test
+                        public void shouldDoStuff() { }
+                    
+                        @Test
+                        @Disabled
+                        public void shouldDoMoreStuff() { }
+                    }
+                    """
+                ));
+            }
+
+            /**
+             * Inner class methods are executed by the TestNG runner only when they are explicitly annotated with @Test, 
+             * class-level annotation will not make them execute.
+             */
+            @Test void doesNotAnnotateInnerClassMethods() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.annotations.Test;
+                    
+                    @Test
+                    public class BazTest {
+                        public void test() { }
+                    
+                        public static class Inner {
+                            public void noTest() { }
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Test;
+                    
+                    public class BazTest {
+                        @Test
+                        public void test() { }
+                    
+                        public static class Inner {
+                            public void noTest() { }
+                        }
+                    }
+                    """
+                ));
+            }
+            
+            @Test void isRemoved_WhenOnlyInnerClassMethods() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.annotations.Test;
+                    
+                    @Test
+                    public class BazTest {
+                        public static class Inner {
+                            public void noTest() { }
+                        }
+                    }
+                    """,
+                    """
+                    public class BazTest {
+                        public static class Inner {
+                            public void noTest() { }
+                        }
+                    }
+                    """
+                ));
+            }
+
+            @Test void noChangeOnOtherAnnotations() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    @Deprecated
+                    public class BazTest {
+                    }
+                    """
+                ));
+            }
+        }
+
         @Test void isMigratedToJunitTestAnnotationWithoutParameters() {
             // language=java
             rewriteRun(java(
