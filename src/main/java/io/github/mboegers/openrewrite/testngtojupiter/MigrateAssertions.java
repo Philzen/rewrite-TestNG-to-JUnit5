@@ -326,8 +326,6 @@ public class MigrateAssertions {
             Assertions.assertNull(expr, msg);
         }
     }
-<<<<<<< HEAD
-=======
 
     @RecipeDescriptor(
             name = "Replace `Assert#assertNotNull(Object)`",
@@ -403,5 +401,4 @@ public class MigrateAssertions {
             Assertions.fail(message, cause);
         }
     }
->>>>>>> 3c937e8 (fixup! Implement assertNull() migration)
 }
