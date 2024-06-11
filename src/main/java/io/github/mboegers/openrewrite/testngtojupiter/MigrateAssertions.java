@@ -57,6 +57,70 @@ public class MigrateAssertions {
     }
 
     @RecipeDescriptor(
+        name = "Replace `Assert#assertEquals(double, double, double)`",
+        description = "Replace `org.testng.Assert#assertEquals(double, double, double)` with `org.junit.jupiter.api.Assertions#assertEquals(double, double, double)`."
+    )
+    public static class MigrateAssertEqualsDoubleDelta {
+
+        @BeforeTemplate void before(double actual, double expected, double delta) {
+            Assert.assertEquals(actual, expected, delta);
+        }
+
+        @AfterTemplate
+        void after(double actual, double expected, double delta) {
+            Assertions.assertEquals(expected, actual, delta);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Replace `Assert#assertEquals(double, double, double, String)`",
+        description = "Replace `org.testng.Assert#assertEquals(double, double, double, String)` with `org.junit.jupiter.api.Assertions#assertEquals(double, double, double, String)`."
+    )
+    public static class MigrateAssertEqualsDoubleDeltaWithMsg {
+
+        @BeforeTemplate void before(double actual, double expected, double delta, String msg) {
+            Assert.assertEquals(actual, expected, delta, msg);
+        }
+
+        @AfterTemplate
+        void after(double actual, double expected, double delta, String msg) {
+            Assertions.assertEquals(expected, actual, delta, msg);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Replace `Assert#assertEquals(float, float, float)`",
+        description = "Replace `org.testng.Assert#assertEquals(float, float, float)` with `org.junit.jupiter.api.Assertions#assertEquals(float, float, float)`."
+    )
+    public static class MigrateAssertEqualsFloatDelta {
+
+        @BeforeTemplate void before(float actual, float expected, float delta) {
+            Assert.assertEquals(actual, expected, delta);
+        }
+
+        @AfterTemplate
+        void after(float actual, float expected, float delta) {
+            Assertions.assertEquals(expected, actual, delta);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Replace `Assert#assertEquals(float, float, float, String)`",
+        description = "Replace `org.testng.Assert#assertEquals(float, float, float, String)` with `org.junit.jupiter.api.Assertions#assertEquals(float, float, float, String)`."
+    )
+    public static class MigrateAssertEqualsFloatDeltaWithMsg {
+
+        @BeforeTemplate void before(float actual, float expected, float delta, String msg) {
+            Assert.assertEquals(actual, expected, delta, msg);
+        }
+
+        @AfterTemplate
+        void after(float actual, float expected, float delta, String msg) {
+            Assertions.assertEquals(expected, actual, delta, msg);
+        }
+    }
+
+    @RecipeDescriptor(
         name = "Migrate `Assert#assertEquals(Iterator<?>, Iterator<?>)`",
         description = "Migrates `org.testng.Assert#assertEquals(Iterator<?>, Iterator<?>)` " +
             "to `org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[])`."
@@ -155,6 +219,70 @@ public class MigrateAssertions {
 
         @AfterTemplate void after(Object[] actual, Object[] expected, String message) {
             Assertions.assertNotEquals(Arrays.toString(expected), Arrays.toString(actual), message);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Replace `Assert#assertNotEquals(double, double, double)`",
+        description = "Replace `org.testng.Assert#assertNotEquals(double, double, double)` with `org.junit.jupiter.api.Assertions#assertNotEquals(double, double, double)`."
+    )
+    public static class MigrateAssertNotEqualsDoubleDelta {
+
+        @BeforeTemplate void before(double actual, double expected, double delta) {
+            Assert.assertNotEquals(actual, expected, delta);
+        }
+
+        @AfterTemplate
+        void after(double actual, double expected, double delta) {
+            Assertions.assertNotEquals(expected, actual, delta);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Replace `Assert#assertNotEquals(double, double, double, String)`",
+        description = "Replace `org.testng.Assert#assertNotEquals(double, double, double, String)` with `org.junit.jupiter.api.Assertions#assertNotEquals(double, double, double, String)`."
+    )
+    public static class MigrateAssertNotEqualsDoubleDeltaWithMsg {
+
+        @BeforeTemplate void before(double actual, double expected, double delta, String msg) {
+            Assert.assertNotEquals(actual, expected, delta, msg);
+        }
+
+        @AfterTemplate
+        void after(double actual, double expected, double delta, String msg) {
+            Assertions.assertNotEquals(expected, actual, delta, msg);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Replace `Assert#assertNotEquals(float, float, float)`",
+        description = "Replace `org.testng.Assert#assertNotEquals(float, float, float)` with `org.junit.jupiter.api.Assertions#assertNotEquals(float, float, float)`."
+    )
+    public static class MigrateAssertNotEqualsFloatDelta {
+
+        @BeforeTemplate void before(float actual, float expected, float delta) {
+            Assert.assertNotEquals(actual, expected, delta);
+        }
+
+        @AfterTemplate
+        void after(float actual, float expected, float delta) {
+            Assertions.assertNotEquals(expected, actual, delta);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Replace `Assert#assertNotEquals(float, float, float, String)`",
+        description = "Replace `org.testng.Assert#assertNotEquals(float, float, float, String)` with `org.junit.jupiter.api.Assertions#assertNotEquals(float, float, float, String)`."
+    )
+    public static class MigrateAssertNotEqualsFloatDeltaWithMsg {
+
+        @BeforeTemplate void before(float actual, float expected, float delta, String msg) {
+            Assert.assertNotEquals(actual, expected, delta, msg);
+        }
+
+        @AfterTemplate
+        void after(float actual, float expected, float delta, String msg) {
+            Assertions.assertNotEquals(expected, actual, delta, msg);
         }
     }
 

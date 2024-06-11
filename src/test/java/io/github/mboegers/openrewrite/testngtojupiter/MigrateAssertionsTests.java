@@ -218,6 +218,37 @@ class MigrateAssertionsTests implements RewriteTest {
                     """
                 ));
             }
+
+            @ValueSource(strings = {"float", "double"})
+            @ParameterizedTest void deltaFunctionIsMigrated(String type) {
+                //language=java
+                rewriteRun(java(
+                  """
+                  import org.testng.Assert;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          %s actual;
+                          %s expected;
+                  
+                          Assert.assertEquals(actual, expected, %s, "Test failed badly");
+                      }
+                  }
+                  """.formatted(type, type, type.equals("float") ? "0.1f" : "0.2d"),
+                  """
+                  import org.junit.jupiter.api.Assertions;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          %s actual;
+                          %s expected;
+                  
+                          Assertions.assertEquals(expected, actual, %s, "Test failed badly");
+                      }
+                  }
+                  """.formatted(type, type, type.equals("float") ? "0.1f" : "0.2d")
+                ));
+            }
         }
 
         @Nested class WithoutErrorMessage {
@@ -318,6 +349,37 @@ class MigrateAssertionsTests implements RewriteTest {
                       }
                   }
                   """
+                ));
+            }
+            
+            @ValueSource(strings = {"float", "double"})
+            @ParameterizedTest void deltaFunctionIsMigrated(String type) {
+                //language=java
+                rewriteRun(java(
+                  """    
+                  import org.testng.Assert;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          %s actual;
+                          %s expected;
+                  
+                          Assert.assertEquals(actual, expected, %s);
+                      }
+                  }
+                  """.formatted(type, type, type.equals("float") ? "0.1f" : "0.2d"),
+                  """
+                  import org.junit.jupiter.api.Assertions;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          %s actual;
+                          %s expected;
+                  
+                          Assertions.assertEquals(expected, actual, %s);
+                      }
+                  }
+                  """.formatted(type, type, type.equals("float") ? "0.1f" : "0.2d")
                 ));
             }
         }
@@ -427,6 +489,37 @@ class MigrateAssertionsTests implements RewriteTest {
                     """
                 ));
             }
+
+            @ValueSource(strings = {"float", "double"})
+            @ParameterizedTest void deltaFunctionIsMigrated(String type) {
+                //language=java
+                rewriteRun(java(
+                  """
+                  import org.testng.Assert;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          %s actual;
+                          %s expected;
+                  
+                          Assert.assertNotEquals(actual, expected, %s, "Test failed badly");
+                      }
+                  }
+                  """.formatted(type, type, type.equals("float") ? "0.1f" : "0.2d"),
+                  """
+                  import org.junit.jupiter.api.Assertions;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          %s actual;
+                          %s expected;
+                  
+                          Assertions.assertNotEquals(expected, actual, %s, "Test failed badly");
+                      }
+                  }
+                  """.formatted(type, type, type.equals("float") ? "0.1f" : "0.2d")
+                ));
+            }
         }
 
         @Nested class WithoutErrorMessage {
@@ -531,7 +624,38 @@ class MigrateAssertionsTests implements RewriteTest {
                     }
                     """
                 ));
-            }            
+            }
+
+            @ValueSource(strings = {"float", "double"})
+            @ParameterizedTest void deltaFunctionIsMigrated(String type) {
+                //language=java
+                rewriteRun(java(
+                  """
+                  import org.testng.Assert;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          %s actual;
+                          %s expected;
+                  
+                          Assert.assertNotEquals(actual, expected, %s);
+                      }
+                  }
+                  """.formatted(type, type, type.equals("float") ? "0.1f" : "0.2d"),
+                  """
+                  import org.junit.jupiter.api.Assertions;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          %s actual;
+                          %s expected;
+                  
+                          Assertions.assertNotEquals(expected, actual, %s);
+                      }
+                  }
+                  """.formatted(type, type, type.equals("float") ? "0.1f" : "0.2d")
+                ));
+            }
         }
     }
 

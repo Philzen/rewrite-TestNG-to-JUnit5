@@ -65,6 +65,26 @@ class AssertionsComparisonTest {
               StreamSupport.stream(Spliterators.spliteratorUnknownSize(CBA_list.iterator(), 0), false).toArray()
             ));
         }
+
+        @Test void doubleDelta() {
+            final double actual = 1d;
+
+            thisWillPass(() -> Assert.assertEquals(actual, 2d, 1d));
+            thisWillPass(() -> Assertions.assertEquals(2d, actual, 1d));
+
+            thisWillFail(() -> Assert.assertEquals(actual, 2d, .999d));
+            thisWillFail(() -> Assertions.assertEquals(2d, actual, .999d));
+        }
+
+        @Test void floatDelta() {
+            final float actual = 1f;
+
+            thisWillPass(() -> Assert.assertEquals(actual, 2f, 1f));
+            thisWillPass(() -> Assertions.assertEquals(2f, actual, 1f));
+
+            thisWillFail(() -> Assert.assertEquals(actual, 2f, .999f));
+            thisWillFail(() -> Assertions.assertEquals(2f, actual, .999f));
+        }
     }
 
     @Nested class assertNotEquals {
@@ -130,6 +150,25 @@ class AssertionsComparisonTest {
 
             thisWillFail(() -> Assert.assertNotEquals(ABC_set, ABC_set));
             thisWillFail(() -> Assertions.assertNotEquals(ABC_set, ABC_set));
+        }
+
+        @Test void doubleDelta() {
+            final double actual = 1d;
+            thisWillPass(() -> Assert.assertNotEquals(actual, 2d, .999d));
+            thisWillPass(() -> Assertions.assertNotEquals(2d, actual, .999d));
+
+            thisWillFail(() -> Assert.assertNotEquals(actual, 2d, 1d));
+            thisWillFail(() -> Assertions.assertNotEquals(2d, actual, 1d));
+        }
+
+        @Test void floatDelta() {
+            final float actual = 1f;
+
+            thisWillPass(() -> Assert.assertNotEquals(actual, 2f, .999f));
+            thisWillPass(() -> Assertions.assertNotEquals(2f, actual, .999f));
+
+            thisWillFail(() -> Assert.assertNotEquals(actual, 2f, 1f));
+            thisWillFail(() -> Assertions.assertNotEquals(2f, actual, 1f));
         }
     }
 
