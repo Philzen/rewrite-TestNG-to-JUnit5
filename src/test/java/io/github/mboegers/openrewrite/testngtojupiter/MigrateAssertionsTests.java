@@ -699,7 +699,8 @@ class MigrateAssertionsTests implements RewriteTest {
 
         @Test void withErrorMessage() {
             //language=java
-            rewriteRun(java("""
+            rewriteRun(java(
+                """
                 import org.testng.Assert;
                 
                 class MyTest {
@@ -722,7 +723,8 @@ class MigrateAssertionsTests implements RewriteTest {
 
         @Test void withoutErrorMessage() {
             //language=java
-            rewriteRun(java("""
+            rewriteRun(java(
+                """
                 import org.testng.Assert;
                 
                 class MyTest {
@@ -749,7 +751,8 @@ class MigrateAssertionsTests implements RewriteTest {
 
         @Test void withErrorMessage() {
             // language=java
-            rewriteRun(java("""
+            rewriteRun(java(
+                """
                 import org.testng.Assert;
                 
                 class MyTest {
@@ -772,7 +775,8 @@ class MigrateAssertionsTests implements RewriteTest {
 
         @Test void withoutErrorMessage() {
             // language=java
-            rewriteRun(java("""
+            rewriteRun(java(
+                """
                 import org.testng.Assert;
                 
                 class MyTest {
@@ -787,6 +791,82 @@ class MigrateAssertionsTests implements RewriteTest {
                 class MyTest {
                     void testMethod() {
                         Assertions.assertNotNull("Not null");
+                    }
+                }
+                """
+            ));
+        }
+    }
+
+    @Nested class MigrateFail {
+
+        @Test void withNoArguments() {
+            //language=java
+            rewriteRun(java(
+                """
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.fail();
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.fail();
+                    }
+                }
+                """
+            ));
+        }
+
+        @Test void withMessage() {
+            // language=java
+            rewriteRun(java(
+                """
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.fail("Boom!");
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.fail("Boom!");
+                    }
+                }
+                """
+            ));
+        }
+
+        @Test void withMessageAndException() {
+            rewriteRun(
+              // language=java
+              java(
+                """
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.fail("Boom!", new Exception("Halted and caught fire."));
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.fail("Boom!", new Exception("Halted and caught fire."));
                     }
                 }
                 """
