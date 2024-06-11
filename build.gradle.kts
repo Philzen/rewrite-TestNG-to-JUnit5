@@ -49,7 +49,7 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-classic:1.2.+")
 
     // Our recipe converts Guava's `Lists` type
-    testRuntimeOnly("com.google.guava:guava:latest.release")
+    testImplementation("com.google.guava:guava:latest.release")
     testRuntimeOnly("org.apache.commons:commons-lang3:latest.release")
     testRuntimeOnly("org.springframework:spring-core:latest.release")
 

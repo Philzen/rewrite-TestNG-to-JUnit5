@@ -75,10 +75,9 @@ class MigrateAssertionsTests implements RewriteTest {
         arguments("long", "long"),
 
         arguments("java.lang.String", "java.lang.String")
-
     );
 
-    static Supplier<Stream<Arguments>> assertArrayEqualsArgumentStream = () -> Stream.of(
+    static Supplier<Stream<Arguments>> assertArrayArgumentStream = () -> Stream.of(
         arguments("boolean[]", "boolean[]"),
         arguments("byte[]", "byte[]"),
         arguments("char[]", "char[]"),
@@ -102,8 +101,19 @@ class MigrateAssertionsTests implements RewriteTest {
         );
     }
 
-    static Stream<Arguments> toAssertArrayEqualsArguments() {
-        return assertArrayEqualsArgumentStream.get();
+    static Stream<Arguments> toAssertArguments_shorterList() {
+        return Stream.of(
+          arguments("java.lang.Boolean", "java.lang.Boolean"),
+          arguments("java.lang.Character", "java.lang.Character"),
+          arguments("double", "double"),
+          arguments("java.lang.Short", "short"),
+          arguments("long", "java.lang.Long"),
+          arguments("java.lang.String", "java.lang.String")
+        );
+    }
+
+    static Stream<Arguments> toAssertArrayArguments() {
+        return assertArrayArgumentStream.get();
     }
 
     @Nested class MigrateAssertEquals {
@@ -141,7 +151,7 @@ class MigrateAssertionsTests implements RewriteTest {
                 ));
             }
 
-            @MethodSource("io.github.mboegers.openrewrite.testngtojupiter.MigrateAssertionsTests#toAssertArrayEqualsArguments")
+            @MethodSource("io.github.mboegers.openrewrite.testngtojupiter.MigrateAssertionsTests#toAssertArrayArguments")
             @ParameterizedTest void becomesAssertArrayEquals_forArrays(String actual, String expected) {
                 //language=java
                 rewriteRun(java(
@@ -243,7 +253,7 @@ class MigrateAssertionsTests implements RewriteTest {
                 ));
             }
 
-            @MethodSource("io.github.mboegers.openrewrite.testngtojupiter.MigrateAssertionsTests#toAssertArrayEqualsArguments")
+            @MethodSource("io.github.mboegers.openrewrite.testngtojupiter.MigrateAssertionsTests#toAssertArrayArguments")
             @ParameterizedTest void becomesAssertArrayEquals_forArrays(String actual, String expected) {
                 //language=java
                 rewriteRun(java(
@@ -314,106 +324,145 @@ class MigrateAssertionsTests implements RewriteTest {
     }
 
     @Nested class MigrateAssertNotEquals {
-        @ParameterizedTest
-        @ValueSource(strings = {
-          "boolean", "boolean[]",
-          "byte", "byte[]",
-          "char", "char[]",
-          "double", "double[]",
-          "float", "float[]",
-          "int", "int[]",
-          "long", "long[]",
-          "short", "short[]",
-          "java.lang.Boolean", "java.lang.Boolean[]",
-          "java.lang.Character", "java.lang.Character[]",
-          "java.lang.Double", "java.lang.Double[]",
-          "java.lang.Float", "java.lang.Float[]",
-          "java.lang.Integer", "java.lang.Integer[]",
-          "java.lang.String", "java.lang.String[]",
-          "java.util.Map<?,?>", "java.util.Set<?>"
-        })
-        void withErrorMessage(String type) {
-            //language=java
-            rewriteRun(java(
-              """
-              import org.testng.Assert;
-              
-              class MyTest {
-                  void testMethod() {
-                      %s actual;
-                      %s expected;
-              
-                      Assert.assertNotEquals(actual, expected, "Test failed badly");
-                  }
-              }
-              """.formatted(type, type), """
-              import org.junit.jupiter.api.Assertions;
-              
-              class MyTest {
-                  void testMethod() {
-                      %s actual;
-                      %s expected;
-              
-                      Assertions.assertNotEquals(expected, actual, "Test failed badly");
-                  }
-              }
-              """.formatted(type, type)
-            ));
+
+        @Nested class WithErrorMessage {
+
+            @MethodSource("io.github.mboegers.openrewrite.testngtojupiter.MigrateAssertionsTests#toAssertArguments_shorterList")
+            @ParameterizedTest void isMigratedToJupiterEquivalent(String actual, String expected) {
+                //language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.Assert;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            %s actual;
+                            %s expected;
+                    
+                            Assert.assertNotEquals(actual, expected, "Test failed badly");
+                        }
+                    }
+                    """.formatted(actual, expected), """
+                    import org.junit.jupiter.api.Assertions;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            %s actual;
+                            %s expected;
+                    
+                            Assertions.assertNotEquals(expected, actual, "Test failed badly");
+                        }
+                    }
+                    """.formatted(actual, expected)
+                ));
+            }
+
+            @MethodSource("io.github.mboegers.openrewrite.testngtojupiter.MigrateAssertionsTests#toAssertArrayArguments")
+            @ParameterizedTest void isMigratedToJupiterEquivalent_wrappedInArrayToString_forArrays(String actual, String expected) {
+                //language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.Assert;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            %s actual;
+                            %s expected;
+                    
+                            Assert.assertNotEquals(actual, expected, "Test failed badly");
+                        }
+                    }
+                    """.formatted(actual, expected),
+                    """
+                    import org.junit.jupiter.api.Assertions;
+                    
+                    import java.util.Arrays;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            %s actual;
+                            %s expected;
+                    
+                            Assertions.assertNotEquals(Arrays.toString(expected), Arrays.toString(actual), "Test failed badly");
+                        }
+                    }
+                    """.formatted(actual, expected)
+                ));
+            }
         }
 
-        @ParameterizedTest
-        @ValueSource(strings = {
-          "boolean", "boolean[]",
-          "byte", "byte[]",
-          "char", "char[]",
-          "double", "double[]",
-          "float", "float[]",
-          "int", "int[]",
-          "long", "long[]",
-          "short", "short[]",
-          "java.lang.Boolean", "java.lang.Boolean[]",
-          "java.lang.Character", "java.lang.Character[]",
-          "java.lang.Double", "java.lang.Double[]",
-          "java.lang.Float", "java.lang.Float[]",
-          "java.lang.Integer", "java.lang.Integer[]",
-          "java.lang.String", "java.lang.String[]",
-          "java.util.Map<?,?>", "java.util.Set<?>"
-        })
-        void withoutErrorMessage(String type) {
-            //language=java
-            rewriteRun(java(
-              """
-              import org.testng.Assert;
-              
-              class MyTest {
-                  void testMethod() {
-                      %s actual;
-                      %s expected;
-              
-                      Assert.assertNotEquals(actual, expected);
-                  }
-              }
-              """.formatted(type, type), """
-              import org.junit.jupiter.api.Assertions;
-              
-              class MyTest {
-                  void testMethod() {
-                      %s actual;
-                      %s expected;
-              
-                      Assertions.assertNotEquals(expected, actual);
-                  }
-              }
-              """.formatted(type, type)
-            ));
+        @Nested class WithoutErrorMessage {
+
+            @MethodSource("io.github.mboegers.openrewrite.testngtojupiter.MigrateAssertionsTests#toAssertArguments_shorterList")
+            @ParameterizedTest void withoutErrorMessage(String actual, String expected) {
+                //language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.Assert;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            %s actual;
+                            %s expected;
+                    
+                            Assert.assertNotEquals(actual, expected);
+                        }
+                    }
+                    """.formatted(actual, expected),
+                    """
+                    import org.junit.jupiter.api.Assertions;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            %s actual;
+                            %s expected;
+                    
+                            Assertions.assertNotEquals(expected, actual);
+                        }
+                    }
+                    """.formatted(actual, expected)
+                ));
+            }
+
+            @MethodSource("io.github.mboegers.openrewrite.testngtojupiter.MigrateAssertionsTests#toAssertArrayArguments")
+            @ParameterizedTest void isMigratedToJupiterEquivalent_wrappedInArrayToString_forArrays(String actual, String expected) {
+                //language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.Assert;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            %s actual;
+                            %s expected;
+                    
+                            Assert.assertNotEquals(actual, expected);
+                        }
+                    }
+                    """.formatted(actual, expected),
+                    """
+                    import org.junit.jupiter.api.Assertions;
+
+                    import java.util.Arrays;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            %s actual;
+                            %s expected;
+                    
+                            Assertions.assertNotEquals(Arrays.toString(expected), Arrays.toString(actual));
+                        }
+                    }
+                    """.formatted(actual, expected)
+                ));
+            }
         }
     }
 
-    @Nested
-    class SkipAssertEqualsDeep {
-        @ParameterizedTest
+    @Nested class SkipAssertEqualsDeep {
+
         @ValueSource(strings = {"java.util.Map<?,?>", "java.util.Set<?>"})
-        void withErrorMessage(String type) {
+        @ParameterizedTest void withErrorMessage(String type) {
             //language=java
             rewriteRun(java(
               """
@@ -451,11 +500,10 @@ class MigrateAssertionsTests implements RewriteTest {
         }
     }
 
-    @Nested
-    class MigrateAssertFalse {
-        @ParameterizedTest
+    @Nested class MigrateAssertFalse {
+
         @ValueSource(strings = {"boolean", "Boolean"})
-        void withErrorMessage(String type) {
+        @ParameterizedTest void withErrorMessage(String type) {
             //language=java
             rewriteRun(java(
               """
@@ -482,9 +530,8 @@ class MigrateAssertionsTests implements RewriteTest {
             ));
         }
 
-        @ParameterizedTest
         @ValueSource(strings = {"boolean", "Boolean"})
-        void withoutErrorMessage(String type) {
+        @ParameterizedTest void withoutErrorMessage(String type) {
             //language=java
             rewriteRun(java(
               """
@@ -512,11 +559,10 @@ class MigrateAssertionsTests implements RewriteTest {
         }
     }
 
-    @Nested
-    class MigrateAssertTrue {
-        @ParameterizedTest
+    @Nested class MigrateAssertTrue {
+
         @ValueSource(strings = {"boolean", "Boolean"})
-        void withErrorMessage(String type) {
+        @ParameterizedTest void withErrorMessage(String type) {
             //language=java
             rewriteRun(java(
               """
@@ -543,9 +589,8 @@ class MigrateAssertionsTests implements RewriteTest {
             ));
         }
 
-        @ParameterizedTest
         @ValueSource(strings = {"boolean", "Boolean"})
-        void withoutErrorMessage(String type) {
+        @ParameterizedTest void withoutErrorMessage(String type) {
             //language=java
             rewriteRun(java(
               """
