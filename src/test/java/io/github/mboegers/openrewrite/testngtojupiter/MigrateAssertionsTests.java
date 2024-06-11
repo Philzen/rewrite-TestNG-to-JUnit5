@@ -693,4 +693,104 @@ class MigrateAssertionsTests implements RewriteTest {
             ));
         }
     }
+
+    @SuppressWarnings({"DataFlowIssue", "ObviousNullCheck"})
+    @Nested class MigrateAssertNull {
+
+        @Test void withErrorMessage() {
+            //language=java
+            rewriteRun(java("""
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.assertNull(null, "Near-missed the billion dollar mistake.");
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.assertNull(null, "Near-missed the billion dollar mistake.");
+                    }
+                }
+                """
+            ));
+        }
+
+        @Test void withoutErrorMessage() {
+            //language=java
+            rewriteRun(java("""
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.assertNull("Not null");
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.assertNull("Not null");
+                    }
+                }
+                """
+            ));
+        }
+    }
+
+    @SuppressWarnings({"DataFlowIssue", "ObviousNullCheck"})
+    @Nested class MigrateAssertNotNull {
+
+        @Test void withErrorMessage() {
+            // language=java
+            rewriteRun(java("""
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.assertNotNull(null, "The billion dollar mistake hit again.");
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.assertNotNull(null, "The billion dollar mistake hit again.");
+                    }
+                }
+                """
+            ));
+        }
+
+        @Test void withoutErrorMessage() {
+            // language=java
+            rewriteRun(java("""
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.assertNotNull("Not null");
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.assertNotNull("Not null");
+                    }
+                }
+                """
+            ));
+        }
+    }
 }

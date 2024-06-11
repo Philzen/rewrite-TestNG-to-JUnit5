@@ -296,4 +296,112 @@ public class MigrateAssertions {
             Assertions.assertTrue(expr, msg);
         }
     }
+
+    @RecipeDescriptor(
+            name = "Replace `Assert#assertNull(Object)`",
+            description = "Replace `org.testng.Assert#assertNull(Object)` with `org.junit.jupiter.api.Assertions#assertNull(Object)`."
+    )
+    public static class MigrateAssertNull {
+
+        @BeforeTemplate void before(Object expr) {
+            Assert.assertNull(expr);
+        }
+
+        @AfterTemplate void after(Object expr) {
+            Assertions.assertNull(expr);
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Replace `Assert#assertNull(Object, String)`",
+            description = "Replace `org.testng.Assert#assertNull(Object, String)` with `org.junit.jupiter.api.Assertions#assertNull(Object, String)`."
+    )
+    public static class MigrateAssertNullWithMsg {
+
+        @BeforeTemplate void before(Object expr, String msg) {
+            Assert.assertNull(expr, msg);
+        }
+
+        @AfterTemplate void after(Object expr, String msg) {
+            Assertions.assertNull(expr, msg);
+        }
+    }
+<<<<<<< HEAD
+=======
+
+    @RecipeDescriptor(
+            name = "Replace `Assert#assertNotNull(Object)`",
+            description = "Replace `org.testng.Assert#assertNotNull(Object)` with `org.junit.jupiter.api.Assertions#assertNotNull(Object)`."
+    )
+    public static class MigrateAssertNotNull {
+
+        @BeforeTemplate void before(Object expr) {
+            Assert.assertNotNull(expr);
+        }
+
+        @AfterTemplate void after(Object expr) {
+            Assertions.assertNotNull(expr);
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Replace `Assert#assertNotNull(Object, String)`",
+            description = "Replace `org.testng.Assert#assertNotNull(Object, String)` with `org.junit.jupiter.api.Assertions#assertNotNull(Object, String)`."
+    )
+    public static class MigrateAssertNotNullWithMsg {
+
+        @BeforeTemplate void before(Object expr, String msg) {
+            Assert.assertNotNull(expr, msg);
+        }
+
+        @AfterTemplate void after(Object expr, String msg) {
+            Assertions.assertNotNull(expr, msg);
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Replace `Assert#fail()`",
+            description = "Replace `org.testng.Assert#fail()` with `org.junit.jupiter.api.Assertions#fail()`."
+    )
+    public static class MigrateFailNoArgs {
+
+        @BeforeTemplate void before() {
+            Assert.fail();
+        }
+
+        @AfterTemplate void after() {
+            Assertions.fail();
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Replace `Assert#fail(String)`",
+            description = "Replace `org.testng.Assert#fail(String)` with `org.junit.jupiter.api.Assertions#fail(String)`."
+    )
+    public static class MigrateFailWithMessage {
+
+        @BeforeTemplate void before(String message) {
+            Assert.fail(message);
+        }
+
+        @AfterTemplate void after(String message) {
+            Assertions.fail(message);
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Replace `Assert#fail(String)`",
+            description = "Replace `org.testng.Assert#fail(String)` with `org.junit.jupiter.api.Assertions#fail(String)`."
+    )
+    public static class MigrateFailWithMessageAndCause {
+
+        @BeforeTemplate void before(String message, Throwable cause) {
+            Assert.fail(message, cause);
+        }
+
+        @AfterTemplate void after(String message, Throwable cause) {
+            Assertions.fail(message, cause);
+        }
+    }
+>>>>>>> 3c937e8 (fixup! Implement assertNull() migration)
 }
