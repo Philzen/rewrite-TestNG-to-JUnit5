@@ -10,3 +10,4 @@ preconditions:
 recipeList:
 - org.philzen.oss.testng.UpdateTestAnnotationToJunit5
 - org.openrewrite.java.testing.junit5.AddMissingNested
+- io.github.mboegers.openrewrite.testngtojupiter.MigrateAssertionsRecipes
