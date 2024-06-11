@@ -20,31 +20,61 @@ import org.testng.Assert;
         description = "Migrate all TestNG Assertions to JUnit Jupiter Assertions."
 )
 public class MigrateAssertions {
-    @RecipeDescriptor(
-            name = "Replace `Assert#assertEquals(?, ?)`",
-            description = "Replace `org.testng.Assert#assertEquals(?, ?)` with `org.junit.jupiter.api.Assertions#assertEquals(?, ?)`."
-    )
-    public static class MigrateObjectAssert {
 
-        @BeforeTemplate
-        void before(Object actual, Object expected) {
+    @RecipeDescriptor(
+            name = "Migrate `Assert#assertEquals(?, ?)` for array parameters",
+            description = "Replace `org.testng.Assert#assertEquals(?, ?)` with `org.junit.jupiter.api.Assertions#assertArrayEquals(?, ?)`."
+    )
+    public static class MigrateAssertEqualsArray {
+
+        @BeforeTemplate void before(Object[] actual, Object[] expected) {
             Assert.assertEquals(actual, expected);
         }
 
-        @AfterTemplate
-        void after(Object actual, Object expected) {
+        @AfterTemplate void after(Object[] actual, Object[] expected) {
+            Assertions.assertArrayEquals(expected, actual);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Migrate `Assert#assertEquals(?, ?, String)` for Set, Object",
+        description = "Replace `org.testng.Assert#assertEquals(?, ?, String)` with `org.junit.jupiter.api.Assertions#assertEquals(?, ?, String)`."
+    )
+    public static class MigrateAssertEqualsArrayWithMsg {
+
+        @BeforeTemplate void before(Object[] actual, Object[] expected, String msg) {
+            Assert.assertEquals(actual, expected, msg);
+        }
+
+        @AfterTemplate void after(Object[] actual, Object[] expected, String msg) {
+            Assertions.assertArrayEquals(expected, actual, msg);
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Replace `Assert#assertEquals(?, ?)` for primitive values, boxed types and other non-array objects",
+            description = "Replace `org.testng.Assert#assertEquals(?, ?)` with `org.junit.jupiter.api.Assertions#assertEquals(?, ?)`."
+                    + "Always run *after* `MigrateAssertEqualsArrayRecipe`."
+    )
+    public static class MigrateAssertEquals {
+
+        @BeforeTemplate void before(Object actual, Object expected) {
+            Assert.assertEquals(actual, expected);
+        }
+
+        @AfterTemplate void after(Object actual, Object expected) {
             Assertions.assertEquals(expected, actual);
         }
     }
 
     @RecipeDescriptor(
-            name = "Replace `Assert#assertEquals(?, ?, String)`",
+            name = "Replace `Assert#assertEquals(?, ?, String)` for primitive values, boxed types and other non-array objects",
             description = "Replace `org.testng.Assert#assertEquals(?, ?, String)` with `org.junit.jupiter.api.Assertions#assertEquals(?, ?, String)`."
+                    + "Always run *after* `MigrateAssertEqualsArrayWithMsgRecipe`."
     )
-    public static class MigrateObjectAssertWithMsg {
+    public static class MigrateAssertEqualsWithMsg {
 
-        @BeforeTemplate
-        void before(Object actual, Object expected, String msg) {
+        @BeforeTemplate void before(Object actual, Object expected, String msg) {
             Assert.assertEquals(actual, expected, msg);
         }
 
@@ -53,7 +83,6 @@ public class MigrateAssertions {
             Assertions.assertEquals(expected, actual, msg);
         }
     }
-
 
     @RecipeDescriptor(
             name = "Replace `Assert#assertEquals(?, ?)`",
