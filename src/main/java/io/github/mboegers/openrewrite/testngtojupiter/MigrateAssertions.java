@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Assertions;
 import org.openrewrite.java.template.RecipeDescriptor;
 import org.testng.Assert;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Spliterators;
 import java.util.stream.StreamSupport;
@@ -128,35 +129,63 @@ public class MigrateAssertions {
     }
 
     @RecipeDescriptor(
-            name = "Replace `Assert#assertEquals(?, ?)`",
-            description = "Replace `org.testng.Assert#assertEquals(?, ?)` with `org.junit.jupiter.api.Assertions#assertEquals(?, ?)`."
+            name = "Replace `Assert#assertNotEquals(Object[], Object[])`",
+            description = "Replace `org.testng.Assert#assertNotEquals(Object[], Object[])` with `org.junit.jupiter.api.Assertions#assertNotEquals(Arrays.toString(Object[], Arrays.toString(Object[]))`."
     )
-    public static class MigrateAssertNotEqual {
+    public static class MigrateAssertNotEqualsArray {
 
-        @BeforeTemplate
-        void before(Object actual, Object expected) {
+        @BeforeTemplate void before(Object[] actual, Object[] expected) {
             Assert.assertNotEquals(actual, expected);
         }
 
-        @AfterTemplate
-        void after(Object actual, Object expected) {
-            Assertions.assertNotEquals(expected, actual);
+        @AfterTemplate void after(Object[] actual, Object[] expected) {
+            Assertions.assertNotEquals(Arrays.toString(expected), Arrays.toString(actual));
         }
     }
 
     @RecipeDescriptor(
-            name = "Replace `Assert#assertEquals(?, ?, String)`",
-            description = "Replace `org.testng.Assert#assertEquals(?, ?, String)` with `org.junit.jupiter.api.Assertions#assertEquals(?, ?, String)`."
+            name = "Replace `Assert#assertNotEquals(Object[], Object[], String)`",
+            description = "Replace `org.testng.Assert#assertNotEquals(Object[], Object[])` with `org.junit.jupiter.api.Assertions#assertNotEquals(Arrays.toString(Object[], Arrays.toString(Object[]), String)`."
     )
-    public static class MigrateAssertNotEqualWithMsg {
+    public static class MigrateAssertNotEqualsArrayWithMsg {
 
-        @BeforeTemplate
-        void before(Object actual, Object expected, String msg) {
+        @BeforeTemplate void before(Object[] actual, Object[] expected, String message) {
+            Assert.assertNotEquals(actual, expected, message);
+        }
+
+        @AfterTemplate void after(Object[] actual, Object[] expected, String message) {
+            Assertions.assertNotEquals(Arrays.toString(expected), Arrays.toString(actual), message);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Replace `Assert#assertNotEquals(?, ?)`",
+        description = "Replace `org.testng.Assert#assertNotEquals(?, ?)` with `org.junit.jupiter.api.Assertions#assertNotEquals(?, ?)`."
+            + "Always run *after* `MigrateAssertNotEqualsArrayRecipe`."
+    )
+    public static class MigrateAssertNotEquals {
+
+        @BeforeTemplate void before(Object actual, Object expected) {
+            Assert.assertNotEquals(actual, expected);
+        }
+
+        @AfterTemplate void after(Object actual, Object expected) {
+            Assertions.assertNotEquals(expected, actual);
+        }
+    }
+    
+    @RecipeDescriptor(
+            name = "Replace `Assert#assertNotEquals(?, ?, String)`",
+            description = "Replace `org.testng.Assert#assertNotEquals(?, ?, String)` with `org.junit.jupiter.api.Assertions#assertNotEquals(?, ?, String)`."
+                    + "Always run *after* `MigrateAssertNotEqualsArrayWithMsgRecipe`."
+    )
+    public static class MigrateAssertNotEqualsWithMsg {
+
+        @BeforeTemplate void before(Object actual, Object expected, String msg) {
             Assert.assertNotEquals(actual, expected, msg);
         }
 
-        @AfterTemplate
-        void after(Object actual, Object expected, String msg) {
+        @AfterTemplate void after(Object actual, Object expected, String msg) {
             Assertions.assertNotEquals(expected, actual, msg);
         }
     }
