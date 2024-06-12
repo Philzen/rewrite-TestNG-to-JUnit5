@@ -76,6 +76,31 @@ class AssertionsComparisonTest {
             thisWillFail(() -> Assertions.assertEquals(2d, actual, .999d));
         }
 
+        @Tag("missing")
+        @Test void doubleArrayDelta() {
+            final double[] expected = new double[] {0d, 10d};
+            final double[] actual = new double[] {1d, 9d};
+            thisWillPass(() -> Assert.assertEquals(actual, expected, 1d));
+            // there is no equivalent in Jupiter :/
+
+            thisWillFail(() -> Assert.assertEquals(actual, expected, .999d));
+            // there is no equivalent in Jupiter :/
+
+            // possible migration equivalent
+            thisWillPass(() -> Assertions.assertAll(() -> {
+                Assertions.assertEquals(expected.length, actual.length, "Arrays don't have the same size.");
+                for (int i = 0; i < actual.length; i++) {
+                    Assertions.assertEquals(expected[i], actual[i], 1d);
+                }
+            }));
+            thisWillFail(() -> Assertions.assertAll(() -> {
+                Assertions.assertEquals(expected.length, actual.length, "Arrays don't have the same size.");
+                for (int i = 0; i < actual.length; i++) {
+                    Assertions.assertEquals(expected[i], actual[i], .999d);
+                }
+            }));
+        }
+
         @Test void floatDelta() {
             final float actual = 1f;
 
@@ -84,6 +109,31 @@ class AssertionsComparisonTest {
 
             thisWillFail(() -> Assert.assertEquals(actual, 2f, .999f));
             thisWillFail(() -> Assertions.assertEquals(2f, actual, .999f));
+        }
+
+        @Tag("missing")
+        @Test void floatArrayDelta() {
+            final double[] expected = new double[] {0d, 10f};
+            final double[] actual = new double[] {1f, 9f};
+            thisWillPass(() -> Assert.assertEquals(actual, expected, 1f));
+            // there is no equivalent in Jupiter :/
+
+            thisWillFail(() -> Assert.assertEquals(actual, expected, .999f));
+            // there is no equivalent in Jupiter :/
+
+            // possible migration equivalent
+            thisWillPass(() -> Assertions.assertAll(() -> {
+                Assertions.assertEquals(expected.length, actual.length, "Arrays don't have the same size.");
+                for (int i = 0; i < actual.length; i++) {
+                    Assertions.assertEquals(expected[i], actual[i], 1f);
+                }
+            }));
+            thisWillFail(() -> Assertions.assertAll(() -> {
+                Assertions.assertEquals(expected.length, actual.length, "Arrays don't have the same size.");
+                for (int i = 0; i < actual.length; i++) {
+                    Assertions.assertEquals(expected[i], actual[i], .999f);
+                }
+            }));
         }
     }
 
