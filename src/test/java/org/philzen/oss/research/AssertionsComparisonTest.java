@@ -32,6 +32,7 @@ class AssertionsComparisonTest {
     static final Set<String> CBA_set = ImmutableSet.of("c", "b", "a");
     static final Set<String> XYZ_set = ImmutableSet.of("x", "y", "z");
 
+    @SuppressWarnings("AssertBetweenInconvertibleTypes")
     @Nested class assertEquals {
 
         @Tag("mismatch")
@@ -64,6 +65,16 @@ class AssertionsComparisonTest {
               StreamSupport.stream(Spliterators.spliteratorUnknownSize(ABC_list.iterator(), 0), false).toArray(),
               StreamSupport.stream(Spliterators.spliteratorUnknownSize(CBA_list.iterator(), 0), false).toArray()
             ));
+        }
+
+        @Test void collection() {
+            Collection<String> actual = new ArrayList<>(ABC_list);
+
+            thisWillPass(() -> Assert.assertEquals(actual, new ArrayList<>(ABC_list)));
+            thisWillPass(() -> Assertions.assertEquals(new ArrayList<>(ABC_list), actual));
+
+            thisWillFail(() -> Assert.assertEquals(actual, CBA_list));
+            thisWillFail(() -> Assertions.assertEquals(CBA_list, actual));
         }
 
         @Test void doubleDelta() {
@@ -134,6 +145,42 @@ class AssertionsComparisonTest {
                     Assertions.assertEquals(expected[i], actual[i], .999f);
                 }
             }));
+        }
+
+        @Test void iterable() {
+            final Iterable<String> actual = ABC_list;
+            final Iterable<String> expected = new ArrayList<>(ABC_list);
+
+            thisWillPass(() -> Assert.assertEquals(actual, expected));
+            thisWillPass(() -> Assertions.assertEquals(expected, actual));
+
+            thisWillFail(() -> Assert.assertEquals(actual, CBA_list));
+            thisWillFail(() -> Assertions.assertEquals(CBA_list, actual));
+        }
+
+        @Test void map() {
+            final Map<Integer, String> actual = ASC_numMap;
+
+            thisWillPass(() -> Assert.assertEquals(actual, new LinkedHashMap<>(ASC_numMap)));
+            thisWillPass(() -> Assertions.assertEquals(new LinkedHashMap<>(ASC_numMap), actual));
+
+            // order does not matter
+            thisWillPass(() -> Assert.assertEquals(actual, DESC_numMap));
+            thisWillPass(() -> Assertions.assertEquals(DESC_numMap, actual));
+
+            thisWillFail(() -> Assert.assertEquals(actual, OTHER_map));
+            thisWillFail(() -> Assertions.assertEquals(OTHER_map, actual));
+        }
+
+        @Test void set() {
+            final Set<Integer> actual = ASC_numMap.keySet();
+
+            // order does not matter
+            thisWillPass(() -> Assert.assertEquals(actual, DESC_numMap.keySet()));
+            thisWillPass(() -> Assertions.assertEquals(DESC_numMap.keySet(), actual));
+
+            thisWillFail(() -> Assert.assertEquals(actual, OTHER_map.keySet()));
+            thisWillFail(() -> Assertions.assertEquals(OTHER_map.keySet(), actual));
         }
     }
 
