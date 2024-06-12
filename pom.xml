@@ -262,6 +262,7 @@
                                     <goal>report</goal>
                                 </goals>
                                 <configuration>
+                                    <excludes>**/MigrateAssertions.*</excludes>
                                     <formats>
                                         <format>XML</format>
                                     </formats>
