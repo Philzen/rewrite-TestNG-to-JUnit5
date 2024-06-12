@@ -222,6 +222,26 @@ class AssertionsComparisonTest {
         }
     }
 
+    @Test void assertNotSame() {
+        final Collection<String> expected = ABC_list;
+
+        thisWillPass(() -> Assertions.assertNotSame(new ArrayList<>(ABC_list), expected));
+        thisWillPass(() -> Assert.assertNotSame(expected, new ArrayList<>(ABC_list)));
+
+        thisWillFail(() -> Assert.assertNotSame(ABC_list, expected));
+        thisWillFail(() -> Assertions.assertNotSame(expected, ABC_list));
+    }
+
+    @Test void assertSame() {
+        final Collection<String> expected = ABC_list;
+
+        thisWillPass(() -> Assert.assertSame(ABC_list, expected));
+        thisWillPass(() -> Assertions.assertSame(expected, ABC_list));
+
+        thisWillFail(() -> Assert.assertSame(new ArrayList<>(ABC_list), expected));
+        thisWillFail(() -> Assertions.assertSame(expected, new ArrayList<>(ABC_list)));
+    }
+
     void thisWillPass(final ThrowableAssert.ThrowingCallable code) {
         assertThatNoException().isThrownBy(code);
     }
