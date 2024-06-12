@@ -36,27 +36,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           arguments: ${{ env.GRADLE_SWITCHES }} build test
-      - name: "[Maven] Verify & generate JaCoCo XML"
-        env:
-          MAVEN_OPTS: '-Dstyle.color=always'
-          MAVEN_SWITCHES: >-
-            --show-version
-            --no-transfer-progress
-            --update-snapshots
-            --fail-at-end
-            --batch-mode
-        run: mvn ${{ env.MAVEN_SWITCHES }} -P coverage verify
-
-      - name: Upload maven build result
-        uses: actions/upload-artifact@v4
-        with:
-          name: maven-build-target-folder
-          path: target
-
-  call:
-    needs: [build]
-    uses: './.github/workflows/analyse.yml'
-    secrets: inherit
 
   publish-snapshots:
     needs: [build]

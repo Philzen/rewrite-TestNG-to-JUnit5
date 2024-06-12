@@ -1,9 +1,10 @@
 name: SonarCloud
 on:
-  workflow_call:
-    inputs: {}
+  push:
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened]
+
 jobs:
   analyze:
     name: Analyze
@@ -29,11 +30,27 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      - name: Download code coverage results
-        uses: actions/download-artifact@v4
+
+      - name: "[Maven] Verify & generate JaCoCo XML"
+        env:
+          MAVEN_OPTS: '-Dstyle.color=always'
+          MAVEN_SWITCHES: >-
+            --show-version
+            --no-transfer-progress
+            --update-snapshots
+            --fail-at-end
+            --batch-mode
+        run: mvn ${{ env.MAVEN_SWITCHES }} -P coverage verify
+
+      - name: Upload maven build result
+        uses: actions/upload-artifact@v4
         with:
           name: maven-build-target-folder
           path: target
+
+      - name: List current location
+        run: find .
+
       - name: Analyze project
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
