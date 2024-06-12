@@ -358,6 +358,36 @@ public class MigrateAssertions {
     }
 
     @RecipeDescriptor(
+            name = "Migrate `Assert#assertNotSame(Object, Object)`",
+            description = "Migrates `org.testng.Assert#assertNotSame(Object, Object)` to `org.junit.jupiter.api.Assertions#assertNotSame(Object, Object)`."
+    )
+    public static class MigrateAssertNotSame {
+
+        @BeforeTemplate void before(Object actual, Object expected) {
+            Assert.assertNotSame(actual, expected);
+        }
+
+        @AfterTemplate void after(Object actual, Object expected) {
+            Assertions.assertNotSame(expected, actual);
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Migrate `Assert#assertNotSame(Object, Object, String)`",
+            description = "Migrates `org.testng.Assert#assertNotSame(Object, Object, String)` to `org.junit.jupiter.api.Assertions#assertNotSame(Object, Object, String)`."
+    )
+    public static class MigrateAssertNotSameWithMsg {
+
+        @BeforeTemplate void before(Object actual, Object expected, String msg) {
+            Assert.assertNotSame(actual, expected, msg);
+        }
+
+        @AfterTemplate void after(Object actual, Object expected, String msg) {
+            Assertions.assertNotSame(expected, actual, msg);
+        }
+    }
+
+    @RecipeDescriptor(
             name = "Replace `Assert#assertFalse(boolean)`",
             description = "Replace `org.testng.Assert#assertFalse(boolean)` with `org.junit.jupiter.api.Assertions#assertFalse(boolean)`."
     )
@@ -482,6 +512,36 @@ public class MigrateAssertions {
 
         @AfterTemplate void after(Object expr, String msg) {
             Assertions.assertNotNull(expr, msg);
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Migrate `Assert#assertSame(Object, Object)`",
+            description = "Migrates `org.testng.Assert#assertSame(Object, Object)` to `org.junit.jupiter.api.Assertions#assertSame(Object, Object)`."
+    )
+    public static class MigrateAssertSame {
+
+        @BeforeTemplate void before(Object actual, Object expected) {
+            Assert.assertSame(actual, expected);
+        }
+
+        @AfterTemplate void after(Object actual, Object expected) {
+            Assertions.assertSame(expected, actual);
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Migrate `Assert#assertSame(Object, Object, String)`",
+            description = "Migrates `org.testng.Assert#assertSame(Object, Object, String)` to `org.junit.jupiter.api.Assertions#assertSame(Object, Object, String)`."
+    )
+    public static class MigrateAssertSameWithMsg {
+
+        @BeforeTemplate void before(Object actual, Object expected, String msg) {
+            Assert.assertSame(actual, expected, msg);
+        }
+
+        @AfterTemplate void after(Object actual, Object expected, String msg) {
+            Assertions.assertSame(expected, actual, msg);
         }
     }
 

@@ -922,6 +922,111 @@ class MigrateAssertionsTests implements RewriteTest {
         }
     }
 
+    @Nested class MigrateAssertNotSame {
+
+        @Test void withMessage() {
+            // language=java
+            rewriteRun(java(
+                """
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.assertNotSame(MyTest.class, Object.class, "Should not be the same object instance");
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.assertNotSame(Object.class, MyTest.class, "Should not be the same object instance");
+                    }
+                }
+                """
+            ));
+        }
+
+        @Test void withoutMessage() {
+            // language=java
+            rewriteRun(java(
+                """
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.assertNotSame(MyTest.class, Object.class);
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.assertNotSame(Object.class, MyTest.class);
+                    }
+                }
+                """
+            ));
+        }
+    }
+
+    @SuppressWarnings("EqualsWithItself")
+    @Nested class MigrateAssertSame {
+
+        @Test void withMessage() {
+            // language=java
+            rewriteRun(java(
+                """
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Class<?> actual = MyTest.class;
+                        Assert.assertSame(MyTest.class, actual, "Should be the same object instance");
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Class<?> actual = MyTest.class;
+                        Assertions.assertSame(actual, MyTest.class, "Should be the same object instance");
+                    }
+                }
+                """
+            ));
+        }
+
+        @Test void withoutMessage() {
+            // language=java
+            rewriteRun(java(
+                """
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.assertSame(MyTest.class, MyTest.class);
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.assertSame(MyTest.class, MyTest.class);
+                    }
+                }
+                """
+            ));
+        }
+    }
+
     @Nested class MigrateFail {
 
         @Test void withNoArguments() {
