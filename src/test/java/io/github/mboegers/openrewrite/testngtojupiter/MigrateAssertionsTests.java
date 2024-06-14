@@ -389,6 +389,44 @@ class MigrateAssertionsTests implements RewriteTest {
                     """.formatted(actual, expected)
                 ));
             }
+            
+            @Test void becomesSpecialAssertNotEquals_forIterators() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import java.util.Iterator;
+                    import java.util.List;
+                    import org.testng.Assert;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            Iterator<String> actual = List.of("a", "b").iterator();
+                            Iterator<String> expected = List.of("b", "a").iterator();
+                    
+                            Assert.assertNotEquals(actual, expected, "Kaboom.");
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Assertions;
+                    
+                    import java.util.Arrays;
+                    import java.util.Iterator;
+                    import java.util.List;
+                    import java.util.Spliterators;
+                    import java.util.stream.StreamSupport;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            Iterator<String> actual = List.of("a", "b").iterator();
+                            Iterator<String> expected = List.of("b", "a").iterator();
+                    
+                            Assertions.assertNotEquals(Arrays.toString(StreamSupport.stream(Spliterators.spliteratorUnknownSize(expected, 0), false).toArray()), Arrays.toString(StreamSupport.stream(Spliterators.spliteratorUnknownSize(actual, 0), false).toArray()), "Kaboom.");
+                        }
+                    }
+                    """
+                ));
+            }
         }
 
         @Nested class WithoutErrorMessage {
@@ -456,6 +494,44 @@ class MigrateAssertionsTests implements RewriteTest {
                     """.formatted(actual, expected)
                 ));
             }
+            
+            @Test void becomesSpecialAssertNotEquals_forIterators() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import java.util.Iterator;
+                    import java.util.List;
+                    import org.testng.Assert;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            Iterator<String> actual = List.of("a", "b").iterator();
+                            Iterator<String> expected = List.of("b", "a").iterator();
+                    
+                            Assert.assertNotEquals(actual, expected);
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Assertions;
+                    
+                    import java.util.Arrays;
+                    import java.util.Iterator;
+                    import java.util.List;
+                    import java.util.Spliterators;
+                    import java.util.stream.StreamSupport;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            Iterator<String> actual = List.of("a", "b").iterator();
+                            Iterator<String> expected = List.of("b", "a").iterator();
+                    
+                            Assertions.assertNotEquals(Arrays.toString(StreamSupport.stream(Spliterators.spliteratorUnknownSize(expected, 0), false).toArray()), Arrays.toString(StreamSupport.stream(Spliterators.spliteratorUnknownSize(actual, 0), false).toArray()));
+                        }
+                    }
+                    """
+                ));
+            }            
         }
     }
 
