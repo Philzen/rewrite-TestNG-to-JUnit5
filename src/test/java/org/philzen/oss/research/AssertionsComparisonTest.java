@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.testng.Assert;
 
 import java.util.*;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -181,6 +182,64 @@ class AssertionsComparisonTest {
 
             thisWillFail(() -> Assert.assertEquals(actual, OTHER_map.keySet()));
             thisWillFail(() -> Assertions.assertEquals(OTHER_map.keySet(), actual));
+        }
+    }
+
+    @Tag("missing")
+    @Nested class assertEqualsNoOrder { // there is no equivalent in Jupiter
+
+        @Test void collection() {
+            final Collection<String> expected = ABC_list;
+
+            thisWillPass(() -> Assert.assertEqualsNoOrder(CBA_list, expected));
+            thisWillFail(() -> Assert.assertEqualsNoOrder(List.of("x", "y"), expected));
+
+            // possible migration (string only)
+            thisWillPass(() -> Assertions.assertLinesMatch(expected.stream().sorted(), CBA_list.stream().sorted()));
+            thisWillFail(() -> Assertions.assertLinesMatch(expected.stream().sorted(), Stream.of("x", "y").sorted()));
+
+            // possible migration (any type)
+            thisWillPass(() -> Assertions.assertArrayEquals(
+              expected.stream().sorted().toArray(), CBA_list.stream().sorted().toArray()
+            ));
+            thisWillFail(() -> Assertions.assertArrayEquals(
+              expected.stream().sorted().toArray(), Stream.of("x", "y").sorted().toArray()
+            ));
+        }
+
+        @Test void iterator() {
+            thisWillPass(() -> Assert.assertEqualsNoOrder(CBA_list.iterator(), ABC_list.iterator()));
+            thisWillFail(() -> Assert.assertEqualsNoOrder(List.of("x", "y").iterator(), ABC_list.iterator()));
+
+            // possible migration
+            thisWillPass(() -> Assertions.assertArrayEquals(
+              StreamSupport.stream(Spliterators.spliteratorUnknownSize(CBA_list.iterator(), 0), false).sorted().toArray(),
+              StreamSupport.stream(Spliterators.spliteratorUnknownSize(ABC_list.iterator(), 0), false).sorted().toArray()
+            ));
+            thisWillFail(() -> Assertions.assertArrayEquals(
+              StreamSupport.stream(Spliterators.spliteratorUnknownSize(CBA_list.iterator(), 0), false).sorted().toArray(),
+              StreamSupport.stream(Spliterators.spliteratorUnknownSize(List.of("x", "y").iterator(), 0), false).sorted().toArray()
+            ));
+        }
+
+        @Test void objectArray() {
+            final Object[] expected = new String[]{"a", "b", "c", "d"};
+
+            thisWillPass(() -> Assert.assertEqualsNoOrder(new String[]{"b", "a", "d", "c"}, expected));
+
+            thisWillFail(() -> Assert.assertEqualsNoOrder(new String[]{"b", "b", "a", "d", "c"}, expected));
+
+            // possible migration
+            thisWillPass(() -> Assertions.assertArrayEquals(
+                Arrays.stream(expected).sorted().toArray(),
+                Arrays.stream(new String[]{"b", "a", "d", "c"}).sorted().toArray()
+            ));
+
+            // possible migration
+            thisWillFail(() -> Assertions.assertEquals(
+                Arrays.stream(expected).sorted(),
+                Arrays.stream(new String[]{"b", "b", "a", "d", "c"}).sorted()
+            ));
         }
     }
 
