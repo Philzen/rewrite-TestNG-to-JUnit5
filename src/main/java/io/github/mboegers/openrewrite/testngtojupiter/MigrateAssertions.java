@@ -15,6 +15,10 @@ import org.junit.jupiter.api.Assertions;
 import org.openrewrite.java.template.RecipeDescriptor;
 import org.testng.Assert;
 
+import java.util.Iterator;
+import java.util.Spliterators;
+import java.util.stream.StreamSupport;
+
 @RecipeDescriptor(
         name = "Migrate TestNG Asserts to Jupiter",
         description = "Migrate all TestNG Assertions to JUnit Jupiter Assertions."
@@ -52,9 +56,48 @@ public class MigrateAssertions {
     }
 
     @RecipeDescriptor(
+        name = "Migrate `Assert#assertEquals(Iterator<?>, Iterator<?>)`",
+        description = "Migrates `org.testng.Assert#assertEquals(Iterator<?>, Iterator<?>)` " +
+            "to `org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[])`."
+    )
+    public static class MigrateAssertEqualsIterator {
+
+        @BeforeTemplate void before(Iterator<?> actual, Iterator<?> expected) {
+            Assert.assertEquals(actual, expected);
+        }
+
+        @AfterTemplate void after(Iterator<?> actual, Iterator<?> expected) {
+            Assertions.assertArrayEquals(
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(expected, 0), false).toArray(),
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(actual, 0), false).toArray()
+            );
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Migrate `Assert#assertEquals(Iterator<?>, Iterator<?>, String)`",
+        description = "Migrates `org.testng.Assert#assertEquals(Iterator<?>, Iterator<?>, String)` " +
+            "to `org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[], String)`."
+    )
+    public static class MigrateAssertEqualsIteratorWithMsg {
+
+        @BeforeTemplate void before(Iterator<?> actual, Iterator<?> expected, String msg) {
+            Assert.assertEquals(actual, expected, msg);
+        }
+
+        @AfterTemplate void after(Iterator<?> actual, Iterator<?> expected, String msg) {
+            Assertions.assertArrayEquals(
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(expected, 0), false).toArray(),
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(actual, 0), false).toArray(),
+                msg
+            );
+        }
+    }
+
+    @RecipeDescriptor(
             name = "Replace `Assert#assertEquals(?, ?)` for primitive values, boxed types and other non-array objects",
             description = "Replace `org.testng.Assert#assertEquals(?, ?)` with `org.junit.jupiter.api.Assertions#assertEquals(?, ?)`."
-                    + "Always run *after* `MigrateAssertEqualsArrayRecipe`."
+                    + "Always run *after* `MigrateAssertEqualsArrayRecipe` and `MigrateAssertEqualsIteratorRecipe`."
     )
     public static class MigrateAssertEquals {
 
@@ -70,7 +113,7 @@ public class MigrateAssertions {
     @RecipeDescriptor(
             name = "Replace `Assert#assertEquals(?, ?, String)` for primitive values, boxed types and other non-array objects",
             description = "Replace `org.testng.Assert#assertEquals(?, ?, String)` with `org.junit.jupiter.api.Assertions#assertEquals(?, ?, String)`."
-                    + "Always run *after* `MigrateAssertEqualsArrayWithMsgRecipe`."
+                + "Always run *after* `MigrateAssertEqualsArrayRecipe` and `MigrateAssertEqualsIteratorRecipe`."
     )
     public static class MigrateAssertEqualsWithMsg {
 
