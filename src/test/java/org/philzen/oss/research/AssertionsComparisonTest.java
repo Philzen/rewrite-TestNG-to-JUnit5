@@ -89,6 +89,25 @@ class AssertionsComparisonTest {
             thisWillFail(() -> Assertions.assertNotEquals(ABC_list, ImmutableList.copyOf(ABC_list)));
         }
 
+        @Tag("mismatch")
+        @Test void iterator() {
+            thisWillPass(() -> Assert.assertNotEquals(ABC_list.iterator(), CBA_list.iterator()));
+            thisWillPass(() -> Assertions.assertNotEquals(CBA_list.iterator(), ABC_list.iterator()));
+
+            thisWillFail(() -> Assert.assertNotEquals(ABC_list.iterator(), ABC_list.iterator()));
+            thisWillPass(() -> Assertions.assertNotEquals(ABC_list.iterator(), ABC_list.iterator()));
+
+            // possible migration
+            thisWillPass(() -> Assertions.assertNotEquals(
+              Arrays.toString(StreamSupport.stream(Spliterators.spliteratorUnknownSize(ABC_list.iterator(), 0), false).toArray()),
+              Arrays.toString(StreamSupport.stream(Spliterators.spliteratorUnknownSize(CBA_list.iterator(), 0), false).toArray())
+            ));
+            thisWillFail(() -> Assertions.assertNotEquals(
+              Arrays.toString(StreamSupport.stream(Spliterators.spliteratorUnknownSize(ABC_list.iterator(), 0), false).toArray()),
+              Arrays.toString(StreamSupport.stream(Spliterators.spliteratorUnknownSize(ABC_list.iterator(), 0), false).toArray())
+            ));
+        }
+
         @Test void map() {
             thisWillPass(() -> Assert.assertNotEquals(ASC_numMap, OTHER_map));
             thisWillPass(() -> Assertions.assertNotEquals(OTHER_map, ASC_numMap));
