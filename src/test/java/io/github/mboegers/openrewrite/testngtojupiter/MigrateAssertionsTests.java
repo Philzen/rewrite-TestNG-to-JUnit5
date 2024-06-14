@@ -385,6 +385,197 @@ class MigrateAssertionsTests implements RewriteTest {
         }
     }
 
+    @Nested class MigrateAssertEqualsNoOrder {
+        
+        @SuppressWarnings("SimplifyStreamApiCallChains")
+        @Nested class WithErrorMessage {
+
+            @Test void migratesCollectionToAssertArrayEquals() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import java.util.Arrays;
+                    import org.testng.Assert;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            Assert.assertEqualsNoOrder(Arrays.asList("a", "b"), Arrays.asList("b", "a"), "Should contain the same elements");
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Assertions;
+                    
+                    import java.util.Arrays;
+
+                    class MyTest {
+                        void testMethod() {
+                            Assertions.assertArrayEquals(Arrays.asList("b", "a").stream().sorted().toArray(), Arrays.asList("a", "b").stream().sorted().toArray(), "Should contain the same elements");
+                        }
+                    }
+                    """
+                ));
+            }
+            
+            @Test void migratesArrayToAssertArrayEquals() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import org.testng.Assert;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            Assert.assertEqualsNoOrder(new String[] {"actual"}, new String[] {"expected"}, "Should contain the same elements");
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Assertions;
+                    
+                    import java.util.Arrays;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            Assertions.assertArrayEquals(Arrays.stream(new String[]{"expected"}).sorted().toArray(), Arrays.stream(new String[]{"actual"}).sorted().toArray(), "Should contain the same elements");
+                        }
+                    }
+                    """
+                ));
+            }
+            
+            @Test void migratesIteratorToAssertArrayEquals() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import java.util.Iterator;
+                    import java.util.List;
+                    import org.testng.Assert;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            Iterator<String> actual = List.of("a", "b").iterator();
+                            Iterator<String> expected = List.of("b", "a").iterator();
+                    
+                            Assert.assertEqualsNoOrder(actual, expected, "Should contain the same elements");
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Assertions;
+                    
+                    import java.util.Iterator;
+                    import java.util.List;
+                    import java.util.Spliterators;
+                    import java.util.stream.StreamSupport;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            Iterator<String> actual = List.of("a", "b").iterator();
+                            Iterator<String> expected = List.of("b", "a").iterator();
+                    
+                            Assertions.assertArrayEquals(StreamSupport.stream(Spliterators.spliteratorUnknownSize(expected, 0), false).sorted().toArray(), StreamSupport.stream(Spliterators.spliteratorUnknownSize(actual, 0), false).sorted().toArray(), "Should contain the same elements");
+                        }
+                    }
+                    """
+                ));
+            }
+        }
+        
+        @SuppressWarnings("SimplifyStreamApiCallChains")
+        @Nested class WithoutErrorMessage {
+
+            @Test void migratesCollectionToAssertArrayEquals() {
+                // language=java
+                rewriteRun(java(
+                    """
+                    import java.util.Arrays;
+                    import org.testng.Assert;
+                    
+                    class MyTest {
+                        void testMethod() {
+                            Assert.assertEqualsNoOrder(Arrays.asList("a", "b"), Arrays.asList("b", "a"));
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Assertions;
+                    
+                    import java.util.Arrays;
+
+                    class MyTest {
+                        void testMethod() {
+                            Assertions.assertArrayEquals(Arrays.asList("b", "a").stream().sorted().toArray(), Arrays.asList("a", "b").stream().sorted().toArray());
+                        }
+                    }
+                    """
+                ));
+            }
+
+            @Test void migratesArrayToAssertArrayEquals() {
+                // language=java
+                rewriteRun(java(
+                  """
+                  import org.testng.Assert;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          Assert.assertEqualsNoOrder(new String[] {"actual"}, new String[] {"expected"});
+                      }
+                  }
+                  """,
+                  """
+                  import org.junit.jupiter.api.Assertions;
+                  
+                  import java.util.Arrays;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          Assertions.assertArrayEquals(Arrays.stream(new String[]{"expected"}).sorted().toArray(), Arrays.stream(new String[]{"actual"}).sorted().toArray());
+                      }
+                  }
+                  """
+                ));
+            }
+
+            @Test void migratesIteratorToAssertArrayEquals() {
+                // language=java
+                rewriteRun(java(
+                  """
+                  import java.util.Iterator;
+                  import java.util.List;
+                  import org.testng.Assert;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          Iterator<String> actual = List.of("a", "b").iterator();
+                          Iterator<String> expected = List.of("b", "a").iterator();
+                  
+                          Assert.assertEqualsNoOrder(actual, expected);
+                      }
+                  }
+                  """,
+                  """
+                  import org.junit.jupiter.api.Assertions;
+                  
+                  import java.util.Iterator;
+                  import java.util.List;
+                  import java.util.Spliterators;
+                  import java.util.stream.StreamSupport;
+                  
+                  class MyTest {
+                      void testMethod() {
+                          Iterator<String> actual = List.of("a", "b").iterator();
+                          Iterator<String> expected = List.of("b", "a").iterator();
+                  
+                          Assertions.assertArrayEquals(StreamSupport.stream(Spliterators.spliteratorUnknownSize(expected, 0), false).sorted().toArray(), StreamSupport.stream(Spliterators.spliteratorUnknownSize(actual, 0), false).sorted().toArray());
+                      }
+                  }
+                  """
+                ));
+            }
+        }
+    }
+    
     @Nested class MigrateAssertNotEquals {
 
         @Nested class WithErrorMessage {

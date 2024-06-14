@@ -16,6 +16,7 @@ import org.openrewrite.java.template.RecipeDescriptor;
 import org.testng.Assert;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Spliterators;
 import java.util.stream.StreamSupport;
@@ -189,6 +190,129 @@ public class MigrateAssertions {
         @AfterTemplate
         void after(Object actual, Object expected, String msg) {
             Assertions.assertEquals(expected, actual, msg);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Migrate `Assert#assertEqualsNoOrder(Collection, Collection)`",
+        description = "Migrate `org.testng.Assert#assertEqualsNoOrder(Collection, Collection)` " +
+                "to `org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[])`, " +
+                "sorting the collection before applying the assertion."
+    )
+    public static class MigrateAssertEqualsNoOrderCollection {
+
+        @BeforeTemplate void before(Collection<?> actual, Collection<?> expected) {
+            Assert.assertEqualsNoOrder(actual, expected);
+        }
+
+        @AfterTemplate void after(Collection<?> actual, Collection<?> expected) {
+            Assertions.assertArrayEquals(
+                expected.stream().sorted().toArray(),
+                actual.stream().sorted().toArray()
+            );
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Migrate `Assert#assertEqualsNoOrder(Collection, Collection, String)`",
+        description = "Migrate `org.testng.Assert#assertEqualsNoOrder(Collection, Collection, String)` " +
+                "to `org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[], String)`, " +
+                "sorting the collection before applying the assertion."
+    )
+    public static class MigrateAssertEqualsNoOrderCollectionWithMessage {
+
+        @BeforeTemplate void before(Collection<?> actual, Collection<?> expected, String message) {
+            Assert.assertEqualsNoOrder(actual, expected, message);
+        }
+
+        @AfterTemplate void after(Collection<?> actual, Collection<?> expected, String message) {
+            Assertions.assertArrayEquals(
+                expected.stream().sorted().toArray(),
+                actual.stream().sorted().toArray(),
+                message
+            );
+        }
+    }
+    
+    @RecipeDescriptor(
+        name = "Migrate `Assert#assertEqualsNoOrder(Object[], Object[])`",
+        description = "Migrate `org.testng.Assert#assertEqualsNoOrder(Object[], Object[])` " +
+                "to `org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[])`, " +
+                "sorting the arrays before applying the assertion."
+    )
+    public static class MigrateAssertEqualsNoOrderArray {
+
+        @BeforeTemplate void before(Object[] actual, Object[] expected) {
+            Assert.assertEqualsNoOrder(actual, expected);
+        }
+
+        @AfterTemplate void after(Object[] actual, Object[] expected) {
+            Assertions.assertArrayEquals(
+                Arrays.stream(expected).sorted().toArray(),
+                Arrays.stream(actual).sorted().toArray()
+            );
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Migrate `Assert#assertEqualsNoOrder(Object[], Object[], String)`",
+        description = "Migrate `org.testng.Assert#assertEqualsNoOrder(Object[], Object[], String)` " +
+                "to `org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[], String)`, " +
+                "sorting the collection before applying the assertion."
+    )
+    public static class MigrateAssertEqualsNoOrderArrayWithMessage {
+
+        @BeforeTemplate void before(Object[] actual, Object[] expected, String message) {
+            Assert.assertEqualsNoOrder(actual, expected, message);
+        }
+
+        @AfterTemplate void after(Object[] actual, Object[] expected, String message) {
+            Assertions.assertArrayEquals(
+                Arrays.stream(expected).sorted().toArray(),
+                Arrays.stream(actual).sorted().toArray(),
+                message
+            );
+        }
+    }
+    
+    @RecipeDescriptor(
+        name = "Migrate `Assert#assertEqualsNoOrder(Iterator<?>, Iterator<?>)`",
+        description = "Migrate `org.testng.Assert#assertEqualsNoOrder(Iterator<?>, Iterator<?>)` " +
+                "to `org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[])`, " +
+                "sorting the arrays before applying the assertion."
+    )
+    public static class MigrateAssertEqualsNoOrderIterator {
+
+        @BeforeTemplate void before(Iterator<?> actual, Iterator<?> expected) {
+            Assert.assertEqualsNoOrder(actual, expected);
+        }
+
+        @AfterTemplate void after(Iterator<?> actual, Iterator<?> expected) {
+            Assertions.assertArrayEquals(
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(expected, 0), false).sorted().toArray(),
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(actual, 0), false).sorted().toArray()
+            );
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Migrate `Assert#assertEqualsNoOrder(Iterator<?>, Iterator<?>, String)`",
+        description = "Migrate `org.testng.Assert#assertEqualsNoOrder(Iterator<?>, Iterator<?>, String)` " +
+            "to `org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[], String)`, " +
+            "sorting the arrays before applying the assertion."
+    )
+    public static class MigrateAssertEqualsNoOrderIteratorWithMessage {
+
+        @BeforeTemplate void before(Iterator<?> actual, Iterator<?> expected, String message) {
+            Assert.assertEqualsNoOrder(actual, expected, message);
+        }
+
+        @AfterTemplate void after(Iterator<?> actual, Iterator<?> expected, String message) {
+            Assertions.assertArrayEquals(
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(expected, 0), false).sorted().toArray(),
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(actual, 0), false).sorted().toArray(),
+                message
+            );
         }
     }
 
