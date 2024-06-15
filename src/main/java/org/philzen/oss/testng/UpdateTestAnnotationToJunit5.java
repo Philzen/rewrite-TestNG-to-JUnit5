@@ -19,11 +19,13 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
-import org.philzen.oss.utils.AfterVisitor;
-import org.philzen.oss.utils.Cleanup;
-import org.philzen.oss.utils.Parser;
+import org.philzen.oss.utils.Class;
+import org.philzen.oss.utils.*;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 
 @Value
 @NonNullApi
@@ -103,16 +105,14 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, 
                                                         ExecutionContext executionContext) {
 
-            final Optional<J.Annotation> maybeAnnotation = classDecl.getLeadingAnnotations()
-                    .stream().filter(TESTNG_TEST::matches).findFirst();
-
-            if (maybeAnnotation.isPresent()) {
-                classDecl = Cleanup.removeAnnotation(classDecl, maybeAnnotation.get());
+            final J.Annotation testAnnotation = Class.getAnnotation(classDecl, TESTNG_TEST);
+            if (testAnnotation != null) {
+                classDecl = Cleanup.removeAnnotation(classDecl, testAnnotation);
 
                 getCursor().putMessage(
                     // don't know a good way to determine if annotation is fully qualified, therefore determining
                     // it from the toString() method and passing on a code template for the JavaTemplate.Builder
-                    "ADD_TO_ALL_METHODS", "@" + (maybeAnnotation.get().toString().contains(".") ? JUPITER_TYPE : "Test")
+                    "ADD_TO_ALL_METHODS", "@" + (testAnnotation.toString().contains(".") ? JUPITER_TYPE : "Test")
                 );
             }
 
@@ -126,13 +126,10 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             
             // method identity changes when `@Test` annotation was found and migrated by ChangeTestAnnotation
             if (m == method) {
-                final boolean isContainedInInnerClass = 
-                    method.getMethodType() == null  // ← (=true) not really, but in this fringe case it's better not to make a replacement 
-                    || method.getMethodType().getDeclaringType().getOwningClass() != null;
-                final boolean isPublic = method.getModifiers().stream().anyMatch(mod -> mod.toString().equals("public"));
                 final String neededOnAllMethods = getCursor().getNearestMessage("ADD_TO_ALL_METHODS");
-                if (neededOnAllMethods == null || !isPublic || isContainedInInnerClass || m.isConstructor()) {
-                    return super.visitMethodDeclaration(method, ctx);
+                final boolean isContainedInInnerClass = Boolean.TRUE.equals(Method.isContainedInInnerClass(m));
+                if (neededOnAllMethods == null || !Method.isPublic(m) || isContainedInInnerClass || m.isConstructor()) {
+                    return super.visitMethodDeclaration(m, ctx);
                 }
                 
                 return JavaTemplate.builder(neededOnAllMethods).javaParser(Parser.jupiter())
@@ -162,14 +159,9 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 && TypeUtils.isAssignableTo("java.lang.Throwable", ((J.FieldAccess) cta.expectedException).getTarget().getType()))
             {
                 m = junitExecutable.apply(updateCursor(m), m.getCoordinates().replaceBody(), m.getBody());
-                final J.Block body = m.getBody();
-                assert body != null;
-                final J.Lambda lambda = (J.Lambda)
-                        ((J.VariableDeclarations) body.getStatements().get(0))
-                        .getVariables().get(0).getInitializer();
 
                 maybeAddImport(JUPITER_ASSERTIONS_TYPE);
-                final List<Object> parameters = Arrays.asList(cta.expectedException, lambda);
+                final List<Object> parameters = Arrays.asList(cta.expectedException, Method.getFirstStatementLambdaAssignment(m));
                 final String code = "Assertions.assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});";
                 if (!(cta.expectedExceptionMessageRegExp instanceof J.Literal)) {
                     m = JavaTemplate.builder(code).javaParser(Parser.jupiter())
