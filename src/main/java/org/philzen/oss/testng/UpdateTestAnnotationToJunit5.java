@@ -8,7 +8,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.NonNullApi;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -21,9 +20,7 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.philzen.oss.utils.Class;
 import org.philzen.oss.utils.*;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Value
 @NonNullApi
@@ -54,6 +51,9 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
     public static final String JUPITER_API_NAMESPACE = "org.junit.jupiter.api";
     public static final String JUPITER_TYPE = JUPITER_API_NAMESPACE + ".Test";
     public static final String JUPITER_ASSERTIONS_TYPE = JUPITER_API_NAMESPACE + ".Assertions";
+    public static final Set<String> supportedAttributes = new HashSet<>(Arrays.asList(
+        "description", "enabled", "expectedExceptions", "expectedExceptionsMessageRegExp", "groups", "timeOut"
+    ));
 
     // inspired by https://github.com/openrewrite/rewrite-testing-frameworks/blob/4e8ba68b2a28a180f84de7bab9eb12b4643e342e/src/main/java/org/openrewrite/java/testing/junit5/UpdateTestAnnotation.java#
     private static class UpdateTestAnnotationToJunit5Visitor extends JavaIsoVisitor<ExecutionContext> {
@@ -86,15 +86,14 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
-            if (!c.findType(TESTNG_TYPE).isEmpty()) {
-                // Update other references like `Test.class`.
-                c = (J.CompilationUnit) new ChangeType(TESTNG_TYPE, JUPITER_TYPE, true)
-                        .getVisitor().visitNonNull(c, ctx);
-                maybeRemoveImport(TESTNG_TYPE);
+            cu = super.visitCompilationUnit(cu, ctx);
+            if (getCursor().getMessage("DO_NOT_CHANGE_TYPE", false) || cu.findType(TESTNG_TYPE).isEmpty()) {
+                return cu;
             }
 
-            return c;
+            maybeRemoveImport(TESTNG_TYPE);
+            return (J.CompilationUnit) 
+                new ChangeType(TESTNG_TYPE, JUPITER_TYPE, true).getVisitor().visitNonNull(cu, ctx);
         }
 
         @Override
@@ -115,16 +114,26 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             return super.visitClassDeclaration(classDecl, executionContext);
         }
 
+        /**
+         * Scenarios:
+         * 1. Noop – no TestNG annotation exists
+         * 2. no attributes → not much to do, just return to cu visitor which will change type
+         * 3. all migratable attributes → process the additional JUnit5 templates
+         * 4. any non-migratable attributes → add misfit to method and process the additional JUnit5 templates 
+         * 5. ALL non-migratable attributes → advise CU visitor DO_NOT_CHANGE_TYPE ??? 
+         */
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration m, ExecutionContext ctx) {
             final ProcessAnnotationAttributes cta = new ProcessAnnotationAttributes();
-            J.MethodDeclaration m = (J.MethodDeclaration) cta.visitNonNull(method, ctx, getCursor().getParentOrThrow());
+            m = (J.MethodDeclaration) cta.visitNonNull(m, ctx, getCursor().getParentOrThrow());
             
-            // method identity changes when `@Test` annotation was found and migrated by ChangeTestAnnotation
-            if (m == method) {
+            if (cta.parsed.isEmpty()) { // no attributes need to be migrated
                 final String neededOnAllMethods = getCursor().getNearestMessage("ADD_TO_ALL_METHODS");
                 final boolean isContainedInInnerClass = Boolean.TRUE.equals(Method.isContainedInInnerClass(m));
                 if (neededOnAllMethods == null || !Method.isPublic(m) || isContainedInInnerClass) {
+                    getCursor().dropParentUntil(p -> p instanceof J.CompilationUnit)
+                        // advise visitCompilationUnit to keep type if non-migratable attributes were found
+                        .putMessage("DO_NOT_CHANGE_TYPE", cta.misfit != null);
                     return m;
                 }
                 
@@ -133,28 +142,33 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                     .apply(getCursor(), m.getCoordinates().addAnnotation(Sort.BELOW));
             }
 
-            if (cta.description != null && !J.Literal.isLiteralValue(cta.description, "")) {
+            if (cta.misfit != null) {
+                // add the non-migratable TestNG annotation alongside the new JUnit5 annotation
+                m = autoFormat(m.withLeadingAnnotations(ListUtils.concat(m.getLeadingAnnotations(), cta.misfit)), ctx);
+            }
+            
+            if (cta.parsed.containsKey("description") && !J.Literal.isLiteralValue(cta.parsed.get("description"), "")) {
                 maybeAddImport(JUPITER_API_NAMESPACE + ".DisplayName");
                 m = displayNameAnnotation.apply(
-                    updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), cta.description
+                    updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), cta.parsed.get("description")
                 );
             }
 
-            if (J.Literal.isLiteralValue(cta.enabled, Boolean.FALSE)) {
+            if (J.Literal.isLiteralValue(cta.parsed.get("enabled"), Boolean.FALSE)) {
                 maybeAddImport(JUPITER_API_NAMESPACE + ".Disabled");
                 m = disabledAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW));
             }
 
-            if (cta.expectedException instanceof J.FieldAccess
+            if (cta.parsed.get("expectedExceptions") instanceof J.FieldAccess
                 // TestNG actually allows any type of Class here, however anything but a Throwable doesn't make sense 
-                && TypeUtils.isAssignableTo("java.lang.Throwable", ((J.FieldAccess) cta.expectedException).getTarget().getType()))
+                && TypeUtils.isAssignableTo("java.lang.Throwable", ((J.FieldAccess) cta.parsed.get("expectedExceptions")).getTarget().getType()))
             {
                 m = junitExecutable.apply(updateCursor(m), m.getCoordinates().replaceBody(), m.getBody());
 
                 maybeAddImport(JUPITER_ASSERTIONS_TYPE);
-                final List<Object> parameters = Arrays.asList(cta.expectedException, Method.getFirstStatementLambdaAssignment(m));
+                final List<Object> parameters = Arrays.asList(cta.parsed.get("expectedExceptions"), Method.getFirstStatementLambdaAssignment(m));
                 final String code = "Assertions.assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});";
-                if (!(cta.expectedExceptionMessageRegExp instanceof J.Literal)) {
+                if (!(cta.parsed.get("expectedExceptionsMessageRegExp") instanceof J.Literal)) {
                     m = JavaTemplate.builder(code).javaParser(Parser.jupiter())
                         .imports(JUPITER_ASSERTIONS_TYPE).build()
                         .apply(updateCursor(m), m.getCoordinates().replaceBody(), parameters.toArray());
@@ -166,17 +180,17 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                         .apply(
                             updateCursor(m), 
                             m.getCoordinates().replaceBody(), 
-                            ListUtils.concat(parameters, cta.expectedExceptionMessageRegExp).toArray()
+                            ListUtils.concat(parameters, cta.parsed.get("expectedExceptionsMessageRegExp")).toArray()
                         );
                 }
             }
 
-            if (cta.groups != null) {
+            if (cta.parsed.get("groups") != null) {
                 maybeAddImport(JUPITER_API_NAMESPACE + ".Tag");
-                if (cta.groups instanceof J.Literal && !J.Literal.isLiteralValue(cta.groups, "")) {
-                    m = tagAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), cta.groups);
-                } else if (cta.groups instanceof J.NewArray && ((J.NewArray) cta.groups).getInitializer() != null) {
-                    final List<Expression> groups = ((J.NewArray) cta.groups).getInitializer();
+                if (cta.parsed.get("groups") instanceof J.Literal && !J.Literal.isLiteralValue(cta.parsed.get("groups"), "")) {
+                    m = tagAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), cta.parsed.get("groups"));
+                } else if (cta.parsed.get("groups") instanceof J.NewArray && ((J.NewArray) cta.parsed.get("groups")).getInitializer() != null) {
+                    final List<Expression> groups = ((J.NewArray) cta.parsed.get("groups")).getInitializer();
                     for (Expression group : groups) {
                         if (group instanceof J.Empty) continue;
                         m = tagAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), group);
@@ -184,10 +198,10 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 }
             }
 
-            if (cta.timeout != null) {
+            if (cta.parsed.get("timeOut") != null) {
                 maybeAddImport("java.util.concurrent.TimeUnit");
                 maybeAddImport(JUPITER_API_NAMESPACE + ".Timeout");
-                m = timeoutAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.ABOVE), cta.timeout);
+                m = timeoutAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.ABOVE), cta.parsed.get("timeOut"));
             }
 
             return m;
@@ -199,8 +213,11 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
          */
         private static class ProcessAnnotationAttributes extends JavaIsoVisitor<ExecutionContext> {
 
-            @Nullable
-            Expression description, enabled, expectedException, expectedExceptionMessageRegExp, groups, timeout;
+            /**
+             * TODO explanation
+             */
+            J.Annotation misfit;
+            final Map<String, Expression> parsed = new HashMap<>(6, 100);
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext ctx) {
@@ -208,26 +225,36 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                     return a;
                 }
 
+                final List<Expression> misfitAttributes = new ArrayList<>(a.getArguments().size());
                 for (Expression arg : a.getArguments()) {
                     final J.Assignment assign = (J.Assignment) arg;
                     final String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
                     final Expression e = assign.getAssignment();
-                    if ("description".equals(assignParamName)) {
-                        description = e;
-                    } else if ("enabled".equals(assignParamName)) {
-                        enabled = e;
-                    } else if ("expectedExceptions".equals(assignParamName)) {
-                        // if attribute was given in { array form }, pick the first element (null is not allowed)
-                        expectedException = !(e instanceof J.NewArray)
-                            ? e : Objects.requireNonNull(((J.NewArray) e).getInitializer()).get(0);
-                    } else if ("expectedExceptionsMessageRegExp".equals(assignParamName)) {
-                        expectedExceptionMessageRegExp = e;
-                    } else if ("groups".equals(assignParamName)) {
-                        groups = e;
-                    } else if ("timeOut".equals(assignParamName)) {
-                        timeout = e;
+                    if (supportedAttributes.contains(assignParamName)) {
+                        if (!"expectedExceptions".equals(assignParamName)) {
+                            parsed.put(assignParamName, e);
+                        } else {
+                            // TODO move this attribute treatment into the method visitation
+                            // if attribute was given in { array form }, pick the first element (null is not allowed)
+                            parsed.put(
+                                assignParamName,
+                                !(e instanceof J.NewArray)? e : Objects.requireNonNull(((J.NewArray) e).getInitializer()).get(0)
+                            );
+                        }
+                    } else {
+                        misfitAttributes.add(arg);
                     }
                 }
+
+                if (!misfitAttributes.isEmpty()) {
+                    misfit = a.withArguments(misfitAttributes)
+                        // ↓ change to full qualification
+                        .withAnnotationType(((J.Identifier) a.getAnnotationType()).withSimpleName(TESTNG_TYPE));
+
+                    if (parsed.isEmpty()) {
+                        return a;
+                    }
+                } 
 
                 // remove all attribute arguments (JUnit 5 @Test annotation doesn't allow any) 
                 return a.withArguments(null);
