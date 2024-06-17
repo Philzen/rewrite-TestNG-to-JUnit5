@@ -17,10 +17,11 @@ import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.philzen.oss.utils.Class;
-import org.philzen.oss.utils.*;
+import org.philzen.oss.utils.Cleanup;
+import org.philzen.oss.utils.Method;
+import org.philzen.oss.utils.Parser;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -93,10 +94,8 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 // Update other references like `Test.class`.
                 c = (J.CompilationUnit) new ChangeType(TESTNG_TYPE, JUPITER_TYPE, true)
                         .getVisitor().visitNonNull(c, ctx);
+                maybeRemoveImport(TESTNG_TYPE);
             }
-
-            maybeRemoveImport(TESTNG_TYPE);
-            doAfterVisit(new AfterVisitor(TESTNG_TYPE));
 
             return c;
         }
@@ -121,7 +120,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-            final ChangeTestAnnotation cta = new ChangeTestAnnotation();
+            final ProcessAnnotationAttributes cta = new ProcessAnnotationAttributes();
             J.MethodDeclaration m = (J.MethodDeclaration) cta.visitNonNull(method, ctx, getCursor().getParentOrThrow());
             
             // method identity changes when `@Test` annotation was found and migrated by ChangeTestAnnotation
@@ -129,7 +128,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 final String neededOnAllMethods = getCursor().getNearestMessage("ADD_TO_ALL_METHODS");
                 final boolean isContainedInInnerClass = Boolean.TRUE.equals(Method.isContainedInInnerClass(m));
                 if (neededOnAllMethods == null || !Method.isPublic(m) || isContainedInInnerClass) {
-                    return super.visitMethodDeclaration(m, ctx);
+                    return m;
                 }
                 
                 return JavaTemplate.builder(neededOnAllMethods).javaParser(Parser.jupiter())
@@ -211,53 +210,47 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 );
             }
 
-            return super.visitMethodDeclaration(m, ctx);
+            return m;
         }
 
-        private static class ChangeTestAnnotation extends JavaIsoVisitor<ExecutionContext> {
-
-            private boolean found;
+        /**
+         * Parses all annotation arguments, retains all that are migratable 
+         * and removes them from the visited <code>@Test</code>-annotation
+         */
+        private static class ProcessAnnotationAttributes extends JavaIsoVisitor<ExecutionContext> {
 
             @Nullable
             Expression description, enabled, expectedException, expectedExceptionMessageRegExp, groups, timeout;
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext ctx) {
-                if (found || !TESTNG_TEST.matches(a)) {
+                if (a.getArguments() == null || !TESTNG_TEST.matches(a)) {
                     return a;
                 }
 
-                // While unlikely, it's possible that a method has an inner class/lambda/etc. with methods that have test annotations
-                // Avoid considering any but the first test annotation found
-                found = true;
-                if (a.getArguments() != null) {
-                    for (Expression arg : a.getArguments()) {
-                        if (!(arg instanceof J.Assignment)) {
-                            continue;
-                        }
-                        final J.Assignment assign = (J.Assignment) arg;
-                        final String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
-                        final Expression e = assign.getAssignment();
-                        if ("description".equals(assignParamName)) {
-                            description = e;
-                        } else if ("enabled".equals(assignParamName)) {
-                            enabled = e;
-                        } else if ("expectedExceptions".equals(assignParamName)) {
-                            // if attribute was given in { array form }, pick the first element (null is not allowed)
-                            expectedException = !(e instanceof J.NewArray)
-                                ? e : Objects.requireNonNull(((J.NewArray) e).getInitializer()).get(0);
-                        } else if ("expectedExceptionsMessageRegExp".equals(assignParamName)) {
-                            expectedExceptionMessageRegExp = e;
-                        } else if ("groups".equals(assignParamName)) {
-                            groups = e;
-                        } else if ("timeOut".equals(assignParamName)) {
-                            timeout = e;
-                        }
+                for (Expression arg : a.getArguments()) {
+                    final J.Assignment assign = (J.Assignment) arg;
+                    final String assignParamName = ((J.Identifier) assign.getVariable()).getSimpleName();
+                    final Expression e = assign.getAssignment();
+                    if ("description".equals(assignParamName)) {
+                        description = e;
+                    } else if ("enabled".equals(assignParamName)) {
+                        enabled = e;
+                    } else if ("expectedExceptions".equals(assignParamName)) {
+                        // if attribute was given in { array form }, pick the first element (null is not allowed)
+                        expectedException = !(e instanceof J.NewArray)
+                            ? e : Objects.requireNonNull(((J.NewArray) e).getInitializer()).get(0);
+                    } else if ("expectedExceptionsMessageRegExp".equals(assignParamName)) {
+                        expectedExceptionMessageRegExp = e;
+                    } else if ("groups".equals(assignParamName)) {
+                        groups = e;
+                    } else if ("timeOut".equals(assignParamName)) {
+                        timeout = e;
                     }
                 }
 
-                // change @Test annotation type to JUnit 5 and remove all attribute arguments
-                return a.withArguments(null).withType(JavaType.ShallowClass.build(JUPITER_TYPE));
+                // remove all attribute arguments (JUnit 5 @Test annotation doesn't allow any) 
+                return a.withArguments(null);
             }
         }
     }
