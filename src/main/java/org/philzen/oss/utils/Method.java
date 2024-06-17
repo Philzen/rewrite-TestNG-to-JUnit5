@@ -47,4 +47,8 @@ public enum Method {;
         
         return (J.Lambda) ((J.VariableDeclarations) body.getStatements().get(0)).getVariables().get(0).getInitializer();
     }
+
+    public static boolean hasAnnotation(J.MethodDeclaration method, String literal) {
+        return method.getLeadingAnnotations().stream().anyMatch(annotation -> annotation.toString().equals(literal));
+    }
 }
