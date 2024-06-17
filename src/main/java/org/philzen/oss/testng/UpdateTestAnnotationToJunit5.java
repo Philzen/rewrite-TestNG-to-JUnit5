@@ -19,12 +19,9 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 import org.philzen.oss.utils.Class;
-import org.philzen.oss.utils.Cleanup;
-import org.philzen.oss.utils.Method;
-import org.philzen.oss.utils.Parser;
+import org.philzen.oss.utils.*;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -133,24 +130,19 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 
                 return JavaTemplate.builder(neededOnAllMethods).javaParser(Parser.jupiter())
                     .imports(JUPITER_TYPE).build()
-                    .apply(getCursor(), method.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName).reversed()));
+                    .apply(getCursor(), m.getCoordinates().addAnnotation(Sort.BELOW));
             }
 
             if (cta.description != null && !J.Literal.isLiteralValue(cta.description, "")) {
                 maybeAddImport(JUPITER_API_NAMESPACE + ".DisplayName");
                 m = displayNameAnnotation.apply(
-                    updateCursor(m),
-                    m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName).reversed()),
-                    cta.description
+                    updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), cta.description
                 );
             }
 
             if (J.Literal.isLiteralValue(cta.enabled, Boolean.FALSE)) {
                 maybeAddImport(JUPITER_API_NAMESPACE + ".Disabled");
-                m = disabledAnnotation.apply(
-                        updateCursor(m),
-                        m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName).reversed())
-                );
+                m = disabledAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW));
             }
 
             if (cta.expectedException instanceof J.FieldAccess
@@ -182,20 +174,12 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             if (cta.groups != null) {
                 maybeAddImport(JUPITER_API_NAMESPACE + ".Tag");
                 if (cta.groups instanceof J.Literal && !J.Literal.isLiteralValue(cta.groups, "")) {
-                    m = tagAnnotation.apply(
-                            updateCursor(m),
-                            m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName).reversed()),
-                            cta.groups
-                    );
+                    m = tagAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), cta.groups);
                 } else if (cta.groups instanceof J.NewArray && ((J.NewArray) cta.groups).getInitializer() != null) {
                     final List<Expression> groups = ((J.NewArray) cta.groups).getInitializer();
                     for (Expression group : groups) {
                         if (group instanceof J.Empty) continue;
-                        m = tagAnnotation.apply(
-                                updateCursor(m),
-                                m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName).reversed()),
-                                group
-                        );
+                        m = tagAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), group);
                     }
                 }
             }
@@ -203,11 +187,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
             if (cta.timeout != null) {
                 maybeAddImport("java.util.concurrent.TimeUnit");
                 maybeAddImport(JUPITER_API_NAMESPACE + ".Timeout");
-                m = timeoutAnnotation.apply(
-                        updateCursor(m),
-                        m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
-                        cta.timeout
-                );
+                m = timeoutAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.ABOVE), cta.timeout);
             }
 
             return m;
