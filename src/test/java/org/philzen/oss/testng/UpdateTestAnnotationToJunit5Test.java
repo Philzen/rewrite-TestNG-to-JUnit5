@@ -1265,4 +1265,80 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
             ));
         }
     }
+
+    /**
+     * Covering issue #4
+     */
+    @Nested class Attributes_NotImplemented_willBeRetained {
+        
+        // TODO mixed test
+        
+        @Test void classLevelAnnotationWillBeRetained_whenAttributesCannotBeMigrated() {
+            // language=java
+            rewriteRun(java(
+              """
+                import org.testng.annotations.Test;
+                
+                @Test(threadPoolSize = 8)
+                class Baz {
+                    public void shouldDoStuff() {
+                        //
+                    }
+                }
+                """
+            ));
+        }
+
+        @Test void methodLevelAnnotationWillBeRetained_whenAttributesCannotBeMigrated() {
+            // language=java
+            rewriteRun(java(
+                """
+                package de.foo.bar;
+                
+                import org.testng.annotations.Test;
+                
+                class Baz {
+                
+                    @Test(threadPoolSize = 8) public void shouldDoStuff() {
+                        //
+                    }
+                }
+                """
+            ));
+        }
+        
+        @Test void methodLevelAnnotationWillBeRetained_whenAttributesCannotBeMigrated_withMigration() {
+            // language=java
+            rewriteRun(java(
+              """
+                package de.foo.bar;
+                
+                import org.testng.annotations.Test;
+                
+                class Baz {
+                
+                    @Test(description = "Yeah!", threadPoolSize = 8) public void shouldDoStuff() {
+                        //
+                    }
+                }
+                """,
+                """
+                package de.foo.bar;
+                
+                import org.junit.jupiter.api.DisplayName;
+                import org.junit.jupiter.api.Test;
+                
+                class Baz {
+                
+                    @Test
+                    @DisplayName("Yeah!")
+                    @org.testng.annotations.Test(threadPoolSize = 8)
+                    public void shouldDoStuff() {
+                        //
+                    }
+                }
+                """
+            ));
+        }
+    }
 }
