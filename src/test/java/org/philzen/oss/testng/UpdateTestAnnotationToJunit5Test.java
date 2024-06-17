@@ -59,6 +59,36 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
             @Test void isMigratedToMethods_preservingOtherAnnotations() {
                 // language=java
                 rewriteRun(java(
+                  """
+                    import org.testng.annotations.Test;
+                    
+                    @Test
+                    @Deprecated
+                    class BazTest {
+                    
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    }
+                    """,
+                    """
+                    import org.junit.jupiter.api.Test;
+                    
+                    @Deprecated
+                    class BazTest {
+                    
+                        @Test
+                        public void shouldDoStuff() {
+                            //
+                        }
+                    }
+                    """
+                ));
+            }
+
+            @Test void isMigratedToMethods_preservingOtherAnnotations_onSameLine() {
+                // language=java
+                rewriteRun(java(
                     """
                     import org.testng.annotations.Test;
                     
@@ -191,36 +221,6 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
                     
                         @org.junit.jupiter.api.Test
                         public void shouldDoMoreStuff() {
-                            //
-                        }
-                    }
-                    """
-                ));
-            }
-
-            @Test void migrationPreservesOtherAnnotations() {
-                // language=java
-                rewriteRun(java(
-                    """
-                    import org.testng.annotations.Test;
-                    
-                    @Test
-                    @Deprecated
-                    class BazTest {
-                    
-                        public void shouldDoStuff() {
-                            //
-                        }
-                    }
-                    """,
-                    """
-                    import org.junit.jupiter.api.Test;
-                    
-                    @Deprecated
-                    class BazTest {
-                    
-                        @Test
-                        public void shouldDoStuff() {
                             //
                         }
                     }
@@ -990,8 +990,7 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
             @SuppressWarnings("DefaultAnnotationParam")
             @Test void doesNotAddAssert_ifEmpty() {
                 // language=java
-                rewriteRun(
-                  java(
+                rewriteRun(java(
                     """
                     import org.testng.annotations.Test;
                     
@@ -1014,8 +1013,7 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
                         }
                     }
                     """
-                  )
-                );
+                ));
             }
         }
     }
@@ -1259,6 +1257,187 @@ class UpdateTestAnnotationToJunit5Test implements RewriteTest {
                         Assertions.assertThrows(IllegalArgumentException.class, () -> {
                             throw new IllegalArgumentException("boom");
                         });
+                    }
+                }
+                """
+            ));
+        }
+    }
+
+    /**
+     * Covering issue #4
+     */
+    @Nested class Attributes_NotImplemented_willBeRetained {
+        
+        @Test void onClassLevelAnnotations() {
+            // language=java
+            rewriteRun(java(
+              """
+                package foo.bar;
+                
+                import org.testng.annotations.Test;
+                
+                @Test(threadPoolSize = 8)
+                class Baz {
+                    public void shouldDoStuff() {
+                        //
+                    }
+                }
+                """,
+              """
+                package foo.bar;
+                
+                import org.junit.jupiter.api.Test;
+                
+                /* ❗️ ❗️ ❗️
+                   At least one `@Test`-attribute could not be migrated to JUnit 5. Kindly review the remainder below
+                   and manually apply any changes you may require to retain the existing test suite's behavior. Delete
+                ↓  the annotation and this comment when satisfied, or use `git reset --hard` to roll back the migration.
+                
+                   If you think this is a mistake or have an idea how this migration could be implemented instead, any
+                   feedback to https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues will be greatly appreciated.
+                */
+                @org.testng.annotations.Test(threadPoolSize = 8)
+                class Baz {
+                    @Test
+                    public void shouldDoStuff() {
+                        //
+                    }
+                }
+                """
+            ));
+        }
+        
+        @Test void onClassAndMethodLevelAnnotations() {
+            // language=java
+            rewriteRun(java(
+              """
+                package foo.bar;
+                
+                import org.testng.annotations.Test;
+                
+                @Test(threadPoolSize = 8)
+                class Baz {
+                
+                    public void shouldDoStuff() {
+                    }
+                
+                    @Test(successPercentage = 40)
+                    public void shouldDoMoreStuff() {
+                    }
+                }
+                """,
+              """
+                package foo.bar;
+                
+                import org.junit.jupiter.api.Test;
+                
+                /* ❗️ ❗️ ❗️
+                   At least one `@Test`-attribute could not be migrated to JUnit 5. Kindly review the remainder below
+                   and manually apply any changes you may require to retain the existing test suite's behavior. Delete
+                ↓  the annotation and this comment when satisfied, or use `git reset --hard` to roll back the migration.
+                
+                   If you think this is a mistake or have an idea how this migration could be implemented instead, any
+                   feedback to https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues will be greatly appreciated.
+                */
+                @org.testng.annotations.Test(threadPoolSize = 8)
+                class Baz {
+                
+                    @Test
+                    public void shouldDoStuff() {
+                    }
+                
+                    @Test
+                    /* ❗️ ❗️ ❗️
+                       At least one `@Test`-attribute could not be migrated to JUnit 5. Kindly review the remainder below
+                       and manually apply any changes you may require to retain the existing test suite's behavior. Delete
+                    ↓  the annotation and this comment when satisfied, or use `git reset --hard` to roll back the migration.
+                   \s
+                       If you think this is a mistake or have an idea how this migration could be implemented instead, any
+                       feedback to https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues will be greatly appreciated.
+                    */
+                    @org.testng.annotations.Test(successPercentage = 40)
+                    public void shouldDoMoreStuff() {
+                    }
+                }
+                """
+            ));
+        }
+
+        @Test void onMethodLevelAnnotation() {
+            // language=java
+            rewriteRun(java(
+                """
+                package de.foo.bar;
+                
+                import org.testng.annotations.Test;
+                
+                class Baz {
+                    @Test(threadPoolSize = 8) public void shouldDoStuff() {
+                        //
+                    }
+                }
+                """,
+                """
+                package de.foo.bar;
+                
+                import org.junit.jupiter.api.Test;
+                
+                class Baz {
+                    @Test
+                    /* ❗️ ❗️ ❗️
+                       At least one `@Test`-attribute could not be migrated to JUnit 5. Kindly review the remainder below
+                       and manually apply any changes you may require to retain the existing test suite's behavior. Delete
+                    ↓  the annotation and this comment when satisfied, or use `git reset --hard` to roll back the migration.
+                   \s
+                       If you think this is a mistake or have an idea how this migration could be implemented instead, any
+                       feedback to https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues will be greatly appreciated.
+                    */
+                    @org.testng.annotations.Test(threadPoolSize = 8)
+                    public void shouldDoStuff() {
+                        //
+                    }
+                }
+                """
+            ));
+        }
+        
+        @Test void onMethodLevelAnnotation_whileOthersAreMigrated() {
+            // language=java
+            rewriteRun(java(
+              """
+                package de.foo.bar;
+                
+                import org.testng.annotations.Test;
+                
+                class Baz {
+                
+                    @Test(description = "Yeah!", threadPoolSize = 8) public void shouldDoStuff() {
+                        //
+                    }
+                }
+                """,
+                """
+                package de.foo.bar;
+                
+                import org.junit.jupiter.api.DisplayName;
+                import org.junit.jupiter.api.Test;
+                
+                class Baz {
+                
+                    @Test
+                    @DisplayName("Yeah!")
+                    /* ❗️ ❗️ ❗️
+                       At least one `@Test`-attribute could not be migrated to JUnit 5. Kindly review the remainder below
+                       and manually apply any changes you may require to retain the existing test suite's behavior. Delete
+                    ↓  the annotation and this comment when satisfied, or use `git reset --hard` to roll back the migration.
+                   \s
+                       If you think this is a mistake or have an idea how this migration could be implemented instead, any
+                       feedback to https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues will be greatly appreciated.
+                    */
+                    @org.testng.annotations.Test(threadPoolSize = 8)
+                    public void shouldDoStuff() {
+                        //
                     }
                 }
                 """
