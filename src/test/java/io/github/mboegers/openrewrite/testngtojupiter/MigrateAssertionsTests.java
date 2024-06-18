@@ -1217,6 +1217,87 @@ class MigrateAssertionsTests implements RewriteTest {
             ));
         }
     }
+    
+    @Nested class MigrateAssertThrows {
+        
+        @Test void runnableWithNoExpectedType() {
+           // language=java
+            rewriteRun(java(
+                """
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.assertThrows(() -> { throw new RuntimeException(); });
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.assertThrows(Throwable.class, () -> {
+                            throw new RuntimeException();
+                        });
+                    }
+                }
+                """
+           ));
+        }
+         
+        @Test void runnableWithNoExpectedThrowableType() {
+           // language=java
+            rewriteRun(java(
+                """
+                import org.testng.Assert;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assert.assertThrows(Exception.class, () -> { throw new RuntimeException(); });
+                    }
+                }
+                """,
+                """
+                import org.junit.jupiter.api.Assertions;
+                
+                class MyTest {
+                    void testMethod() {
+                        Assertions.assertThrows(Exception.class, () -> {
+                            throw new RuntimeException();
+                        });
+                    }
+                }
+                """
+            ));
+        }
+    }
+
+    @Test void migrateExpectThrows() {
+       // language=java
+        rewriteRun(java(
+            """
+            import org.testng.Assert;
+            
+            class MyTest {
+                void testMethod() {
+                    Assert.expectThrows(Exception.class, () -> { throw new RuntimeException(); });
+                }
+            }
+            """,
+            """
+            import org.junit.jupiter.api.Assertions;
+            
+            class MyTest {
+                void testMethod() {
+                    Assertions.assertThrows(Exception.class, () -> {
+                        throw new RuntimeException();
+                    });
+                }
+            }
+            """
+        ));
+    }
 
     @Nested class MigrateFail {
 

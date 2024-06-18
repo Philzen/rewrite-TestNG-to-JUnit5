@@ -347,6 +347,53 @@ class AssertionsComparisonTest {
         thisWillFail(() -> Assert.assertSame(new ArrayList<>(ABC_list), expected));
         thisWillFail(() -> Assertions.assertSame(expected, new ArrayList<>(ABC_list)));
     }
+    
+    @SuppressWarnings("unused")
+    @Nested class assertThrows {
+        
+        @Test void onlyRunnable() {
+            thisWillPass(() -> Assert.assertThrows(() -> { throw new RuntimeException(); }));
+            thisWillFail(() -> Assert.assertThrows(() -> { final var meaningful = 42; }));
+
+            // not a 1:1 equivalent in terms of arguments, but functionally completely equivalent
+            thisWillPass(() -> Assertions.assertThrows(Throwable.class, () -> { throw new RuntimeException(); }));
+            thisWillFail(() -> Assertions.assertThrows(Throwable.class, () -> { final var meaningful = 42; }));
+        }
+        
+        @Test void expectedExceptionClassCheck() {
+            thisWillPass(() -> Assert.assertThrows(RuntimeException.class, () -> { throw new RuntimeException(); }));
+            thisWillFail(() -> Assert.assertThrows(Error.class, () -> { throw new RuntimeException(); }));
+
+            thisWillPass(() -> Assertions.assertThrows(RuntimeException.class, () -> { throw new RuntimeException(); }));
+            thisWillFail(() -> Assertions.assertThrows(Error.class, () -> { throw new RuntimeException(); }));
+            
+            // additional test to show that they both do NOT check for the exact type, "instance of"-truthyness is enough 
+            thisWillPass(() -> Assert.assertThrows(Exception.class, () -> { throw new RuntimeException(); }));
+            thisWillFail(() -> Assert.assertThrows(Error.class, () -> { throw new RuntimeException(); }));
+
+            thisWillPass(() -> Assertions.assertThrows(Exception.class, () -> { throw new RuntimeException(); }));
+            thisWillFail(() -> Assertions.assertThrows(Error.class, () -> { throw new RuntimeException(); }));
+        }
+
+        /**
+         * This is the actual function being called by {@link Assert#assertThrows(Assert.ThrowingRunnable)}
+         * and {@link Assert#assertThrows(Class, Assert.ThrowingRunnable)}, so these migrations are identical
+         */
+        @Test void expectThrows() {
+            thisWillPass(() -> Assert.expectThrows(RuntimeException.class, () -> { throw new RuntimeException(); }));
+            thisWillFail(() -> Assert.expectThrows(Error.class, () -> { throw new RuntimeException(); }));
+
+            thisWillPass(() -> Assertions.assertThrows(RuntimeException.class, () -> { throw new RuntimeException(); }));
+            thisWillFail(() -> Assertions.assertThrows(Error.class, () -> { throw new RuntimeException(); }));
+
+            // additional test to show that they both do NOT check for the exact type, "instance of"-truthyness is enough 
+            thisWillPass(() -> Assert.expectThrows(Exception.class, () -> { throw new RuntimeException(); }));
+            thisWillFail(() -> Assert.expectThrows(Error.class, () -> { throw new RuntimeException(); }));
+
+            thisWillPass(() -> Assertions.assertThrows(Exception.class, () -> { throw new RuntimeException(); }));
+            thisWillFail(() -> Assertions.assertThrows(Error.class, () -> { throw new RuntimeException(); }));
+        }
+    }
 
     void thisWillPass(final ThrowableAssert.ThrowingCallable code) {
         assertThatNoException().isThrownBy(code);
