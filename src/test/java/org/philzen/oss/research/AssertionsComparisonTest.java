@@ -12,7 +12,7 @@ import java.util.Arrays;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
-class ApiComparisonTest {
+class AssertionsComparisonTest {
 
     static final String[] ABC_array = {"a", "b", "c"};
     static final String[] CBA_array = {"c", "b", "a"};
