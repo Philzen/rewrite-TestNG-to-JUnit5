@@ -12,6 +12,7 @@ package io.github.mboegers.openrewrite.testngtojupiter;
 import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.function.Executable;
 import org.openrewrite.java.template.RecipeDescriptor;
 import org.testng.Assert;
 
@@ -666,6 +667,44 @@ public class MigrateAssertions {
 
         @AfterTemplate void after(Object actual, Object expected, String msg) {
             Assertions.assertSame(expected, actual, msg);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Migrate `Assert#assertThrows(Assert.ThrowingRunnable)",
+        description = "Migrates `org.testng.Assert#assertThrows(Assert.ThrowingRunnable)` to "
+            + "`org.junit.jupiter.api.Assertions#Assertions.assertThrows(Throwable.class, org.junit.jupiter.api.function.Executable)`."
+    )
+    public static class MigrateAssertThrows {
+
+        @BeforeTemplate void before(Assert.ThrowingRunnable runnable) {
+            Assert.assertThrows(runnable);
+        }
+        
+        @AfterTemplate void after(Executable executable) {
+            Assertions.assertThrows(Throwable.class, executable);
+        }
+    }
+
+    @RecipeDescriptor(
+        name = "Migrate `Assert#assertThrows(Class<? extends Throwable>, Assert.ThrowingRunnable) " 
+            + "and `Assert#expectThrows(Class<? extends Throwable>, Assert.ThrowingRunnable)",
+        description = "Migrates `org.testng.Assert#assertThrows(Class<? extends Throwable>, Assert.ThrowingRunnable)` "
+            + "and `Assert#expectThrows(Class<? extends Throwable>, Assert.ThrowingRunnable) "
+            + "to `org.junit.jupiter.api.Assertions#Assertions.assertThrows(Class<T>, org.junit.jupiter.api.function.Executable)`."
+    )
+    public static class MigrateAssertThrowsWithExpectedThrowableType {
+
+        @BeforeTemplate void assertThrows(Class<? extends Throwable> throwableClass, Assert.ThrowingRunnable runnable) {
+            Assert.assertThrows(throwableClass, runnable);
+        }
+        
+        @BeforeTemplate void expectThrows(Class<? extends Throwable> throwableClass, Assert.ThrowingRunnable runnable) {
+            Assert.expectThrows(throwableClass, runnable);
+        }
+        
+        @AfterTemplate void after(Class<? extends Throwable> throwableClass, Executable executable) {
+            Assertions.assertThrows(throwableClass, executable);
         }
     }
 
