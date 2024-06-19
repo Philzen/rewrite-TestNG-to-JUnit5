@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.testng.Assert;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -182,6 +183,72 @@ class AssertionsComparisonTest {
 
             thisWillFail(() -> Assert.assertEquals(actual, OTHER_map.keySet()));
             thisWillFail(() -> Assertions.assertEquals(OTHER_map.keySet(), actual));
+        }
+    }
+
+    /**
+     * The check is not as deep as one may guess from the name, it just does an additional
+     * assertArrayEquals (where order matters!) for array (values only) and identity assertion for object (values only) 
+     * in the map (which assertEquals does not), however it does not traverse further into nested maps and alike
+     */
+    @Nested class assertEqualsDeep {
+        
+        final Map<String, Object> expected = Map.of("1", "one", "array", ABC_array, "map", ASC_numMap);
+        // ↓ matches because Objects.equals returns true 
+        final Map<String, Object> matchingActual = Map.of("1", "one", "array", ABC_array, "map", Map.copyOf(ASC_numMap));
+        // ↓ matches because Array elements match returns true 
+        final Map<String, Object> alsoMatchingActual = Map.of("1", "one", "array", ABC_array.clone(), "map", Map.copyOf(ASC_numMap));
+        // ↓ will fail as order of array keys does matter here
+        final Map<String, Object> failingActual = Map.of("1", "one", "array", CBA_array, "map", ASC_numMap);
+        
+        @Test void map() {
+            thisWillPass(() -> Assert.assertEqualsDeep(matchingActual, expected));
+            thisWillPass(() -> Assert.assertEqualsDeep(alsoMatchingActual, expected));
+            thisWillFail(() -> Assert.assertEqualsDeep(failingActual, expected));
+
+            // there is no equivalent in JUnit5, potential migration (not pretty, but works)
+            thisWillPass(
+              () -> Assertions.assertIterableEquals(
+                expected.entrySet().stream().map(
+                  entry -> entry.getValue() == null || !entry.getValue().getClass().isArray() ? entry
+                    // convert array to List as the assertion needs an Iterable for proper comparison
+                    : new AbstractMap.SimpleEntry<>(entry.getKey(), Arrays.asList((Object[]) entry.getValue()))
+                ).collect(Collectors.toSet()),
+                matchingActual.entrySet().stream().map(
+                  entry -> !entry.getValue().getClass().isArray() ? entry
+                    // convert array to List as the assertion needs an Iterable for proper comparison
+                    : new AbstractMap.SimpleEntry<>(entry.getKey(), Arrays.asList((Object[]) entry.getValue()))
+                ).collect(Collectors.toSet())
+            ));
+            
+            thisWillPass(
+              () -> Assertions.assertIterableEquals(
+                expected.entrySet().stream().map(
+                  entry -> !entry.getValue().getClass().isArray() ? entry
+                    // convert array to List as the assertion needs an Iterable for proper comparison
+                    : new AbstractMap.SimpleEntry<>(entry.getKey(), Arrays.asList((Object[]) entry.getValue()))
+                ).collect(Collectors.toSet()),
+                alsoMatchingActual.entrySet().stream().map(
+                  entry -> !entry.getValue().getClass().isArray() ? entry
+                    // convert array to List as the assertion needs an Iterable for proper comparison
+                    : new AbstractMap.SimpleEntry<>(entry.getKey(), Arrays.asList((Object[]) entry.getValue()))
+                ).collect(Collectors.toSet())
+            ));
+            
+            thisWillFail(
+              () -> Assertions.assertIterableEquals(
+                expected.entrySet().stream().map(
+                  entry -> !entry.getValue().getClass().isArray() ? entry
+                    // convert array to List as the assertion needs an Iterable for proper comparison
+                    : new AbstractMap.SimpleEntry<>(entry.getKey(), Arrays.asList((Object[]) entry.getValue()))
+                ).collect(Collectors.toSet()),
+                failingActual.entrySet().stream().map(
+                  entry -> !entry.getValue().getClass().isArray() ? entry
+                    // convert array to List as the assertion needs an Iterable for proper comparison
+                    : new AbstractMap.SimpleEntry<>(entry.getKey(), Arrays.asList((Object[]) entry.getValue()))
+                ).collect(Collectors.toSet())
+            ));
+            
         }
     }
 
