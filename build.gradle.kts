@@ -49,7 +49,7 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-classic:1.2.+")
 
     // Our recipe converts Guava's `Lists` type
-    testRuntimeOnly("com.google.guava:guava:latest.release")
+    testImplementation("com.google.guava:guava:latest.release")
     testRuntimeOnly("org.apache.commons:commons-lang3:latest.release")
     testRuntimeOnly("org.springframework:spring-core:latest.release")
 
@@ -57,7 +57,10 @@ dependencies {
     rewrite("org.openrewrite.recipe:rewrite-recommendations:latest.release")
 
     // ↓ Classpath resource for MigrateTestNg* recipes
-    testRuntimeOnly("org.testng:testng:7.5.1")  // 7.5.x is the last Java 8 compatible version: https://github.com/testng-team/testng/issues/2775
+    implementation("org.testng:testng:7.5.1")  // 7.5.x is the last Java 8 compatible version: https://github.com/testng-team/testng/issues/2775
+
+    // ↓ also make jupiter available for refaster compilation
+    compileOnly("org.junit.jupiter:junit-jupiter-api:latest.release")
 
     // ↓ to allow using testing recipes in our recipe list
     testRuntimeOnly("org.openrewrite.recipe:rewrite-testing-frameworks:latest.release") {
