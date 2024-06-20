@@ -16,10 +16,8 @@ import org.junit.jupiter.api.function.Executable;
 import org.openrewrite.java.template.RecipeDescriptor;
 import org.testng.Assert;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Spliterators;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @RecipeDescriptor(
@@ -331,6 +329,32 @@ public class MigrateAssertions {
             Assertions.assertNotEquals(Arrays.toString(expected), Arrays.toString(actual));
         }
     }
+
+    @RecipeDescriptor(
+            name = "Replace `Assert#assertEqualsDeep(Map, Map)`",
+            description = "Replace `org.testng.Assert#assertNotEquals(Object[], Object[])` with `org.junit.jupiter.api.Assertions#assertNotEquals(Arrays.toString(Object[], Arrays.toString(Object[]))`."
+    )
+public static class MigrateAssertEqualsDeep {
+
+    @BeforeTemplate void before(Map<?, ?> actual, Map<?, ?> expected) {
+        Assert.assertEqualsDeep(actual, expected);
+    }
+
+    @AfterTemplate void after(Map<?, ?> actual, Map<?, ?> expected) {
+        Assertions.assertIterableEquals(
+            expected.entrySet().stream().map(
+                entry -> !entry.getValue().getClass().isArray() ? entry
+                    // convert array to List as the assertion needs an Iterable for proper comparison
+                    : new AbstractMap.SimpleEntry<>(entry.getKey(), Arrays.asList((Object[]) entry.getValue()))
+            ).collect(Collectors.toList()),
+            actual.entrySet().stream().map(
+                entry -> !entry.getValue().getClass().isArray() ? entry
+                    // convert array to List as the assertion needs an Iterable for proper comparison
+                    : new AbstractMap.SimpleEntry<>(entry.getKey(), Arrays.asList((Object[]) entry.getValue()))
+            ).collect(Collectors.toList())
+        );
+    }
+}
 
     @RecipeDescriptor(
             name = "Replace `Assert#assertNotEquals(Object[], Object[], String)`",

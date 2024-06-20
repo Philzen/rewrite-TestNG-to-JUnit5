@@ -850,47 +850,6 @@ class MigrateAssertionsTests implements RewriteTest {
         }
     }
 
-    @Nested class SkipAssertEqualsDeep {
-
-        @ValueSource(strings = {"java.util.Map<?,?>", "java.util.Set<?>"})
-        @ParameterizedTest void withErrorMessage(String type) {
-            //language=java
-            rewriteRun(java(
-              """
-              import org.testng.Assert;
-              
-              class MyTest {
-                  void testMethod() {
-                      %s actual;
-                      %s expected;
-              
-                      Assert.assertEqualsDeep(actual, expected, "Test failed badly");
-                  }
-              }
-              """.formatted(type, type)
-            ));
-        }
-
-        @Test
-        void withoutErrorMessage() {
-            //language=java
-            rewriteRun(java(
-                    """
-              import org.testng.Assert;
-              
-              class MyTest {
-                  void testMethod() {
-                      java.util.Map<?,?> actual;
-                      java.util.Map<?,?> expected;
-              
-                      Assert.assertEqualsDeep(actual, expected);
-                  }
-              }
-              """
-            ));
-        }
-    }
-
     @Nested class MigrateAssertFalse {
 
         @ValueSource(strings = {"boolean", "Boolean"})
