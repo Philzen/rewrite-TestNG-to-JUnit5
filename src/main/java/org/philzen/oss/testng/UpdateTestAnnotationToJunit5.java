@@ -1,6 +1,7 @@
 package org.philzen.oss.testng;
 
 import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -8,15 +9,15 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.NonNullApi;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
 import org.philzen.oss.utils.Class;
 import org.philzen.oss.utils.*;
 
@@ -87,7 +88,7 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             cu = super.visitCompilationUnit(cu, ctx);
-            if (getCursor().getMessage("DO_NOT_CHANGE_TYPE", false) || cu.findType(TESTNG_TYPE).isEmpty()) {
+            if (cu.findType(TESTNG_TYPE).isEmpty()) {
                 return cu;
             }
 
@@ -100,14 +101,23 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, 
                                                         ExecutionContext executionContext) {
 
-            final J.Annotation testAnnotation = Class.getAnnotation(classDecl, TESTNG_TEST);
-            if (testAnnotation != null) {
-                classDecl = Cleanup.removeAnnotation(classDecl, testAnnotation);
+            final J.Annotation testngAnnotation = Class.getAnnotation(classDecl, TESTNG_TEST);
+            if (testngAnnotation != null) {
+                final AnnotationVisitor aap = new AnnotationVisitor(Collections.emptySet());
+                aap.visitAnnotation(testngAnnotation, executionContext);
+                if (aap.misfit != null) {
+                    classDecl = autoFormat(
+                        classDecl.withLeadingAnnotations(ListUtils.concat(classDecl.getLeadingAnnotations(), aap.misfit)), 
+                        executionContext
+                    );
+                }
+
+                classDecl = Cleanup.removeAnnotation(classDecl, testngAnnotation);
 
                 getCursor().putMessage(
                     // don't know a good way to determine if annotation is fully qualified, therefore determining
                     // it from the toString() method and passing on a code template for the JavaTemplate.Builder
-                    "ADD_TO_ALL_METHODS", "@" + (testAnnotation.toString().contains(".") ? JUPITER_TYPE : "Test")
+                    "ADD_TO_ALL_METHODS", "@" + (testngAnnotation.toString().contains(".") ? JUPITER_TYPE : "Test")
                 );
             }
 
@@ -124,16 +134,18 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
          */
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration m, ExecutionContext ctx) {
-            final ProcessAnnotationAttributes cta = new ProcessAnnotationAttributes();
+            final AnnotationVisitor cta = new AnnotationVisitor(supportedAttributes);
             m = (J.MethodDeclaration) cta.visitNonNull(m, ctx, getCursor().getParentOrThrow());
-            
+
+            if (cta.misfit != null) {
+                // add the non-migratable TestNG annotation alongside the new JUnit5 annotation
+                m = autoFormat(m.withLeadingAnnotations(ListUtils.concat(m.getLeadingAnnotations(), cta.misfit)), ctx);
+            }
+
             if (cta.parsed.isEmpty()) { // no attributes need to be migrated
                 final String neededOnAllMethods = getCursor().getNearestMessage("ADD_TO_ALL_METHODS");
                 final boolean isContainedInInnerClass = Boolean.TRUE.equals(Method.isContainedInInnerClass(m));
                 if (neededOnAllMethods == null || !Method.isPublic(m) || isContainedInInnerClass) {
-                    getCursor().dropParentUntil(p -> p instanceof J.CompilationUnit)
-                        // advise visitCompilationUnit to keep type if non-migratable attributes were found
-                        .putMessage("DO_NOT_CHANGE_TYPE", cta.misfit != null);
                     return m;
                 }
                 
@@ -142,33 +154,29 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                     .apply(getCursor(), m.getCoordinates().addAnnotation(Sort.BELOW));
             }
 
-            if (cta.misfit != null) {
-                // add the non-migratable TestNG annotation alongside the new JUnit5 annotation
-                m = autoFormat(m.withLeadingAnnotations(ListUtils.concat(m.getLeadingAnnotations(), cta.misfit)), ctx);
-            }
-            
-            if (cta.parsed.containsKey("description") && !J.Literal.isLiteralValue(cta.parsed.get("description"), "")) {
+            if (cta.had("description") && !J.Literal.isLiteralValue(cta.get("description"), "")) {
                 maybeAddImport(JUPITER_API_NAMESPACE + ".DisplayName");
                 m = displayNameAnnotation.apply(
-                    updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), cta.parsed.get("description")
+                    updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), cta.get("description")
                 );
             }
 
-            if (J.Literal.isLiteralValue(cta.parsed.get("enabled"), Boolean.FALSE)) {
+            if (J.Literal.isLiteralValue(cta.get("enabled"), Boolean.FALSE)) {
                 maybeAddImport(JUPITER_API_NAMESPACE + ".Disabled");
                 m = disabledAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW));
             }
 
-            if (cta.parsed.get("expectedExceptions") instanceof J.FieldAccess
+            final Expression expectedExceptionsValue = cta.get("expectedExceptions"); 
+            if (expectedExceptionsValue instanceof J.FieldAccess
                 // TestNG actually allows any type of Class here, however anything but a Throwable doesn't make sense 
-                && TypeUtils.isAssignableTo("java.lang.Throwable", ((J.FieldAccess) cta.parsed.get("expectedExceptions")).getTarget().getType()))
+                && TypeUtils.isAssignableTo("java.lang.Throwable", ((J.FieldAccess) expectedExceptionsValue).getTarget().getType()))
             {
                 m = junitExecutable.apply(updateCursor(m), m.getCoordinates().replaceBody(), m.getBody());
 
                 maybeAddImport(JUPITER_ASSERTIONS_TYPE);
-                final List<Object> parameters = Arrays.asList(cta.parsed.get("expectedExceptions"), Method.getFirstStatementLambdaAssignment(m));
+                final List<Object> parameters = Arrays.asList(cta.get("expectedExceptions"), Method.getFirstStatementLambdaAssignment(m));
                 final String code = "Assertions.assertThrows(#{any(java.lang.Class)}, #{any(org.junit.jupiter.api.function.Executable)});";
-                if (!(cta.parsed.get("expectedExceptionsMessageRegExp") instanceof J.Literal)) {
+                if (!(cta.get("expectedExceptionsMessageRegExp") instanceof J.Literal)) {
                     m = JavaTemplate.builder(code).javaParser(Parser.jupiter())
                         .imports(JUPITER_ASSERTIONS_TYPE).build()
                         .apply(updateCursor(m), m.getCoordinates().replaceBody(), parameters.toArray());
@@ -180,17 +188,18 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                         .apply(
                             updateCursor(m), 
                             m.getCoordinates().replaceBody(), 
-                            ListUtils.concat(parameters, cta.parsed.get("expectedExceptionsMessageRegExp")).toArray()
+                            ListUtils.concat(parameters, cta.get("expectedExceptionsMessageRegExp")).toArray()
                         );
                 }
             }
 
-            if (cta.parsed.get("groups") != null) {
+            if (cta.had("groups")) {
+                final Expression groupsValue = cta.get("groups"); 
                 maybeAddImport(JUPITER_API_NAMESPACE + ".Tag");
-                if (cta.parsed.get("groups") instanceof J.Literal && !J.Literal.isLiteralValue(cta.parsed.get("groups"), "")) {
-                    m = tagAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), cta.parsed.get("groups"));
-                } else if (cta.parsed.get("groups") instanceof J.NewArray && ((J.NewArray) cta.parsed.get("groups")).getInitializer() != null) {
-                    final List<Expression> groups = ((J.NewArray) cta.parsed.get("groups")).getInitializer();
+                if (groupsValue instanceof J.Literal && !J.Literal.isLiteralValue(cta.get("groups"), "")) {
+                    m = tagAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), cta.get("groups"));
+                } else if (groupsValue instanceof J.NewArray && ((J.NewArray) groupsValue).getInitializer() != null) {
+                    final List<Expression> groups = ((J.NewArray) groupsValue).getInitializer();
                     for (Expression group : groups) {
                         if (group instanceof J.Empty) continue;
                         m = tagAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.BELOW), group);
@@ -198,27 +207,54 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 }
             }
 
-            if (cta.parsed.get("timeOut") != null) {
+            if (cta.had("timeOut")) {
                 maybeAddImport("java.util.concurrent.TimeUnit");
                 maybeAddImport(JUPITER_API_NAMESPACE + ".Timeout");
-                m = timeoutAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.ABOVE), cta.parsed.get("timeOut"));
+                m = timeoutAnnotation.apply(updateCursor(m), m.getCoordinates().addAnnotation(Sort.ABOVE), cta.get("timeOut"));
             }
 
             return m;
         }
 
         /**
-         * Parses all annotation arguments, retains all that are migratable 
-         * and removes them from the visited <code>@Test</code>-annotation
+         * Parses annotation arguments, stores those that are migratable in a map (member <code>parsed</code>) 
+         * and removes all arguments from the visited <code>@Test</code>-annotation.
+         * <br>
+         * The {@link AnnotationVisitor#misfit}-field will hold a fully qualified NgUnit @Test annotation 
+         * retaining any arguments that are not migratable, if any were encountered. 
          */
-        private static class ProcessAnnotationAttributes extends JavaIsoVisitor<ExecutionContext> {
+        @RequiredArgsConstructor
+        private static class AnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+            private final Set<String> supportedAttributes;
+            
+            /**
+             * A fully qualified TestNG @Test annotation retaining any arguments that are not migratable 
+             * or <code>null</code>, if none such arguments were encountered
+             */
+            J.Annotation misfit = null;
+            
+            final static String MISFIT_COMMENT = " ❗\uFE0F ❗\uFE0F ❗\uFE0F\n"
+                + "   At least one `@Test`-attribute could not be migrated to JUnit 5. Kindly review the remainder below\n"
+                + "   and manually apply any changes you may require to retain the existing test suite's behavior. Delete\n"
+                + "↓  the annotation and this comment when satisfied, or use `git reset --hard` to roll back the migration.\n\n"
+                + "   If you think this is a mistake or have an idea how this migration could be implemented instead, any\n"
+                + "   feedback to https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues will be greatly appreciated.\n";
 
             /**
-             * TODO explanation
+             * A map containing the migratable annotation arguments, if TestNG annotation was found
              */
-            J.Annotation misfit;
             final Map<String, Expression> parsed = new HashMap<>(6, 100);
 
+            public boolean had(String attribute) {
+                return parsed.containsKey(attribute);
+            }
+            
+            @Nullable
+            public Expression get(String attribute) {
+                return parsed.get(attribute);
+            }
+            
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext ctx) {
                 if (a.getArguments() == null || !TESTNG_TEST.matches(a)) {
@@ -249,11 +285,11 @@ public class UpdateTestAnnotationToJunit5 extends Recipe {
                 if (!misfitAttributes.isEmpty()) {
                     misfit = a.withArguments(misfitAttributes)
                         // ↓ change to full qualification
-                        .withAnnotationType(((J.Identifier) a.getAnnotationType()).withSimpleName(TESTNG_TYPE));
-
-                    if (parsed.isEmpty()) {
-                        return a;
-                    }
+                        .withAnnotationType(((J.Identifier) a.getAnnotationType()).withSimpleName(TESTNG_TYPE))
+                        .withPrefix(Space.build("\n", Collections.emptyList()))
+                        .withComments(Collections.singletonList(
+                            new TextComment(true, MISFIT_COMMENT, "\n", Markers.EMPTY))
+                        );
                 } 
 
                 // remove all attribute arguments (JUnit 5 @Test annotation doesn't allow any) 
