@@ -8,5 +8,6 @@ preconditions:
 - org.openrewrite.FindSourceFiles:
     filePattern: "**/*.java"
 recipeList:
+- io.github.mboegers.openrewrite.testngtojupiter.MigrateDataProvider
 - org.philzen.oss.testng.UpdateTestAnnotationToJunit5
 - org.openrewrite.java.testing.junit5.AddMissingNested
