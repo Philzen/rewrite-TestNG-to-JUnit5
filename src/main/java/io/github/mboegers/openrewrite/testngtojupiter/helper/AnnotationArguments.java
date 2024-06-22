@@ -16,20 +16,6 @@ import java.util.stream.Collectors;
 public final class AnnotationArguments {
 
     /**
-     * Determines if the annotation has any arguments
-     */
-    public static boolean hasAny(J.Annotation annotation) {
-        List<Expression> arguments = annotation.getArguments();
-
-        if (arguments == null || arguments.isEmpty()) {
-            return false;
-        }
-
-        boolean containsNoEmpty = arguments.stream().noneMatch(J.Empty.class::isInstance);
-        return containsNoEmpty;
-    }
-
-    /**
      * Extracts all assignments with the given argument name from the annotation
      *
      * @param annotation   to extract the assignments from
