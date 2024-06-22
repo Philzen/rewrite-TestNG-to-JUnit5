@@ -64,7 +64,7 @@ public class MigrateDataProvider extends Recipe {
         };
     }
 
-    private class WrapDataProviderMethod extends JavaIsoVisitor<ExecutionContext> {
+    private static class WrapDataProviderMethod extends JavaIsoVisitor<ExecutionContext> {
 
         private final JavaTemplate methodeSourceTemplate = JavaTemplate.builder(
                 "public static Stream<Arguments> #{}() {\n"
@@ -103,7 +103,7 @@ public class MigrateDataProvider extends Recipe {
         }
     }
 
-    private class UseParameterizedTest extends JavaIsoVisitor<ExecutionContext> {
+    private static class UseParameterizedTest extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             method = super.visitMethodDeclaration(method, ctx);
@@ -141,7 +141,7 @@ public class MigrateDataProvider extends Recipe {
         }
     }
 
-    class UseMethodSource extends JavaIsoVisitor<ExecutionContext> {
+    static class UseMethodSource extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             method = super.visitMethodDeclaration(method, ctx);
