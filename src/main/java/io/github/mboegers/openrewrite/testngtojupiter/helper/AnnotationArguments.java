@@ -22,8 +22,8 @@ public enum AnnotationArguments {;
      * @param argumentName to extract
      */
     public static List<Expression> extractAssignments(J.Annotation annotation, String argumentName) {
-        List<Expression> arguments = annotation.getArguments();
-
+        
+        final List<Expression> arguments = annotation.getArguments();
         if (arguments == null) {
             return Collections.emptyList();
         }
@@ -46,8 +46,8 @@ public enum AnnotationArguments {;
      * @return the value or Optional#empty
      */
     public static <T> Optional<T> extractLiteral(J.Annotation annotation, String argumentName, Class<T> valueClass) {
-        List<Expression> arguments = annotation.getArguments();
 
+        final List<Expression> arguments = annotation.getArguments();
         if (arguments == null) {
             return Optional.empty();
         }

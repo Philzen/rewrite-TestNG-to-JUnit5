@@ -36,10 +36,10 @@ public class FindAnnotation extends JavaIsoVisitor<ExecutionContext> {
 
     @Override
     public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext executionContext) {
+        
         annotation = super.visitAnnotation(annotation, executionContext);
-
         if (annotationMatcher.matches(annotation)) {
-            annotation = SearchResult.found(annotation);
+            return SearchResult.found(annotation);
         }
 
         return annotation;

@@ -80,12 +80,12 @@ public class MigrateDataProvider extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, org.openrewrite.ExecutionContext ctx) {
             classDecl = super.visitClassDeclaration(classDecl, ctx);
 
-            Set<J.MethodDeclaration> dataProviders = FindAnnotatedMethods.find(classDecl, DATA_PROVIDER_MATCHER);
+            final Set<J.MethodDeclaration> dataProviders = FindAnnotatedMethods.find(classDecl, DATA_PROVIDER_MATCHER);
 
             // for each add a Wrapper that translates to Jupiter method source
             for (J.MethodDeclaration provider : dataProviders) {
-                String providerMethodName = provider.getSimpleName();
-                String providerName = FindAnnotation.find(provider, DATA_PROVIDER_MATCHER).stream().findAny()
+                final String providerMethodName = provider.getSimpleName();
+                final String providerName = FindAnnotation.find(provider, DATA_PROVIDER_MATCHER).stream().findAny()
                         .flatMap(j -> AnnotationArguments.extractLiteral(j, "name", String.class))
                         .orElse(providerMethodName);
 
@@ -109,35 +109,33 @@ public class MigrateDataProvider extends Recipe {
             method = super.visitMethodDeclaration(method, ctx);
 
             // if @ParameterizedTest is used, skip
-            Optional<J.Annotation> parameterizedTestAnnotation = FindAnnotation.findFirst(method, new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest"));
+            final Optional<J.Annotation> parameterizedTestAnnotation = 
+                FindAnnotation.findFirst(method, new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest"));
             if (parameterizedTestAnnotation.isPresent()) {
                 return method;
             }
 
             // if no TestNG @Test present, skip
-            Optional<J.Annotation> testNgAnnotation = FindAnnotation.findFirst(method, new AnnotationMatcher("@org.testng.annotations.Test"));
+            final Optional<J.Annotation> testNgAnnotation = 
+                FindAnnotation.findFirst(method, new AnnotationMatcher("@org.testng.annotations.Test"));
             if (!testNgAnnotation.isPresent()) {
                 return method;
             }
 
             // determine if a parameterized test is applicable
-            Optional<String> dataProviderMethodName = AnnotationArguments.extractLiteral(testNgAnnotation.get(), "dataProvider", String.class);
+            final Optional<String> dataProviderMethodName = 
+                AnnotationArguments.extractLiteral(testNgAnnotation.get(), "dataProvider", String.class);
             if (!dataProviderMethodName.isPresent()) {
                 return method;
             }
 
-            JavaCoordinates addAnnotationCoordinate = method.getCoordinates().addAnnotation((a, b) -> 1);
-
-            method = JavaTemplate
+            maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
+            return JavaTemplate
                     .builder("@ParameterizedTest")
                     .javaParser(JavaParser.fromJavaVersion().classpath("junit-jupiter-params"))
                     .imports("org.junit.jupiter.params.ParameterizedTest")
                     .build()
-                    .apply(getCursor(), addAnnotationCoordinate);
-
-            maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
-
-            return method;
+                    .apply(getCursor(), method.getCoordinates().addAnnotation((a, b) -> 1));
         }
     }
 
@@ -147,25 +145,25 @@ public class MigrateDataProvider extends Recipe {
             method = super.visitMethodDeclaration(method, ctx);
 
             // if @MethodSource is used, skip
-            Optional<J.Annotation> methodSourceAnnotation = FindAnnotation.findFirst(method, new AnnotationMatcher("@org.junit.jupiter.params.provider.MethodSource"));
+            final Optional<J.Annotation> methodSourceAnnotation = FindAnnotation.findFirst(method, new AnnotationMatcher("@org.junit.jupiter.params.provider.MethodSource"));
             if (methodSourceAnnotation.isPresent()) {
                 return method;
             }
 
             // if no testng annotation is present, skip
-            Optional<J.Annotation> testNgAnnotation = FindAnnotation.findFirst(method, new AnnotationMatcher("@org.testng.annotations.Test"));
+            final Optional<J.Annotation> testNgAnnotation = FindAnnotation.findFirst(method, new AnnotationMatcher("@org.testng.annotations.Test"));
             if (!testNgAnnotation.isPresent()) {
                 return method;
             }
 
             // determine Provider name, if not present skip!
-            Optional<String> dataProviderMethodName = AnnotationArguments.extractLiteral(testNgAnnotation.get(), "dataProvider", String.class);
+            final Optional<String> dataProviderMethodName = AnnotationArguments.extractLiteral(testNgAnnotation.get(), "dataProvider", String.class);
             if (!dataProviderMethodName.isPresent()) {
                 return method;
             }
 
             // determin provider class or use current class as default
-            String dataProviderClass = AnnotationArguments.extractAssignments(testNgAnnotation.get(), "dataProviderClass").stream()
+            final String dataProviderClass = AnnotationArguments.extractAssignments(testNgAnnotation.get(), "dataProviderClass").stream()
                     .findAny()
                     .map(J.FieldAccess.class::cast)
                     .map(J.FieldAccess::getTarget)
@@ -176,18 +174,19 @@ public class MigrateDataProvider extends Recipe {
                     .orElse(requireNonNull(getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class).getType()).getFullyQualifiedName());
 
             // add MethodSource annotation
-            JavaCoordinates addAnnotationCoordinate = method.getCoordinates().addAnnotation((a, b) -> 1);
-            method = JavaTemplate
+            maybeAddImport("org.junit.jupiter.params.provider.MethodSource");
+            maybeRemoveImport(dataProviderClass);
+            return JavaTemplate
                     .builder("@MethodSource(\"#{}##{}\")")
                     .javaParser(JavaParser.fromJavaVersion().classpath("junit-jupiter-params"))
                     .imports("org.junit.jupiter.params.provider.MethodSource")
                     .build()
-                    .apply(getCursor(), addAnnotationCoordinate, dataProviderClass, dataProviderMethodName.get());
-
-            maybeAddImport("org.junit.jupiter.params.provider.MethodSource");
-            maybeRemoveImport(dataProviderClass);
-
-            return method;
+                    .apply(
+                        getCursor(), 
+                        method.getCoordinates().addAnnotation((a, b) -> 1), 
+                        dataProviderClass, 
+                        dataProviderMethodName.get()
+                    );
         }
     }
 }

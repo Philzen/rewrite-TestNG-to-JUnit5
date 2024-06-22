@@ -35,11 +35,10 @@ public class FindAnnotatedMethods extends JavaIsoVisitor<ExecutionContext> {
 
     @Override
     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-        J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-
-        boolean isAnnotatedWithTargetAnnotation = m.getLeadingAnnotations().stream().anyMatch(annotationMatcher::matches);
-        if (isAnnotatedWithTargetAnnotation) {
-            m = SearchResult.found(m);
+        
+        final J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+        if (m.getLeadingAnnotations().stream().anyMatch(annotationMatcher::matches)) {
+            return SearchResult.found(m);
         }
 
         return m;
