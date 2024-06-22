@@ -29,16 +29,14 @@ class MigrateDataProviderTest implements RewriteTest {
           .recipe(new MigrateDataProvider());
     }
 
+    @Nested class WrapDataProvider {
 
-    @Nested
-    class WrapDataProvider {
-        @Test
-        void withName() {
+        @Test void withName() {
             @Language("java") String is = """
               package de.boeg.tst.provider;
-                            
+              
               import org.testng.annotations.DataProvider;
-                            
+              
               public class BoxPrimitiveDataProvider {
                   @DataProvider(name = "anotherBoxPrimitiveDataProvider")
                   public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
@@ -46,15 +44,15 @@ class MigrateDataProviderTest implements RewriteTest {
               """;
             @Language("java") String should = """
               package de.boeg.tst.provider;
-                            
+              
               import org.junit.jupiter.params.provider.Arguments;
-                            
+              
               import java.util.Arrays;
               import java.util.stream.Stream;
-                            
+              
               public class BoxPrimitiveDataProvider {
                   public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
-                            
+              
                   public static Stream<Arguments> anotherBoxPrimitiveDataProvider() {
                       return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
                   }
@@ -63,12 +61,11 @@ class MigrateDataProviderTest implements RewriteTest {
             rewriteRun(java(is, should));
         }
 
-        @Test
-        void withDefaultName() {
+        @Test void withDefaultName() {
             @Language("java") String is = """
               package de.boeg.tst.provider;
               import org.testng.annotations.DataProvider;
-                            
+              
               public class BoxPrimitiveDataProvider {
                   @DataProvider
                   public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
@@ -77,13 +74,13 @@ class MigrateDataProviderTest implements RewriteTest {
             @Language("java") String should = """
               package de.boeg.tst.provider;
               import org.junit.jupiter.params.provider.Arguments;
-                            
+              
               import java.util.Arrays;
               import java.util.stream.Stream;
-                            
+              
               public class BoxPrimitiveDataProvider {
                   public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
-                            
+              
                   public static Stream<Arguments> boxPrimitiveDataProvider() {
                       return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
                   }
@@ -91,20 +88,18 @@ class MigrateDataProviderTest implements RewriteTest {
               """;
             rewriteRun(java(is, should));
         }
-
     }
 
-    @Nested
-    class NewTests {
-        @Test
-        void fullMigrate() {
+    @Nested class NewTests {
+
+        @Test void fullMigrate() {
             rewriteRun(
               java(
                 """
                   package de.boeg.tst.provider;
                   import org.testng.annotations.DataProvider;
-                            
-                  public class BoxPrimitiveDataProvider {                   
+                  
+                  public class BoxPrimitiveDataProvider {
                       @DataProvider
                       public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
                   }
@@ -112,13 +107,13 @@ class MigrateDataProviderTest implements RewriteTest {
                 """
                   package de.boeg.tst.provider;
                   import org.junit.jupiter.params.provider.Arguments;
-                                    
+                  
                   import java.util.Arrays;
                   import java.util.stream.Stream;
-                              
+                  
                   public class BoxPrimitiveDataProvider {
                       public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
-                              
+                  
                       public static Stream<Arguments> boxPrimitiveDataProvider() {
                           return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
                       }
@@ -129,9 +124,9 @@ class MigrateDataProviderTest implements RewriteTest {
                 """
                   package de.boeg.tst.real;
                   import org.testng.annotations.Test;
-                                    
+                  
                   import de.boeg.tst.provider.BoxPrimitiveDataProvider;
-                                  
+                  
                   public class HotSpotConstantReflectionProviderTest {
                       @Test(dataProvider = "boxPrimitiveDataProvider", dataProviderClass = BoxPrimitiveDataProvider.class)
                       public void testUnboxPrimitive(Object constant, Object expected) {/*...*/}
@@ -141,9 +136,9 @@ class MigrateDataProviderTest implements RewriteTest {
                   import org.junit.jupiter.params.ParameterizedTest;
                   import org.junit.jupiter.params.provider.MethodSource;
                   import org.testng.annotations.Test;
-                                    
+                  
                   import de.boeg.tst.provider.BoxPrimitiveDataProvider;
-                                    
+                  
                   public class HotSpotConstantReflectionProviderTest {
                       @Test
                       @ParameterizedTest
@@ -154,15 +149,14 @@ class MigrateDataProviderTest implements RewriteTest {
               ));
         }
 
-        @Test
-        void WrapOnlyDataprovider() {
+        @Test void WrapOnlyDataprovider() {
             rewriteRun(
               java(
                 """
                   package de.boeg.tst.provider;
                   import org.testng.annotations.DataProvider;
-                            
-                  public class BoxPrimitiveDataProvider {                   
+                  
+                  public class BoxPrimitiveDataProvider {
                       @DataProvider
                       public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
                   }
@@ -170,13 +164,13 @@ class MigrateDataProviderTest implements RewriteTest {
                 """
                   package de.boeg.tst.provider;
                   import org.junit.jupiter.params.provider.Arguments;
-                                    
+                  
                   import java.util.Arrays;
                   import java.util.stream.Stream;
-                              
+                  
                   public class BoxPrimitiveDataProvider {
                       public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
-                              
+                  
                       public static Stream<Arguments> boxPrimitiveDataProvider() {
                           return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
                       }
@@ -187,14 +181,14 @@ class MigrateDataProviderTest implements RewriteTest {
                 """
                   package de.boeg.tst.real;
                   import org.testng.annotations.Test;
-                                    
+                  
                   import org.junit.jupiter.params.ParameterizedTest;
                   import org.junit.jupiter.params.provider.MethodSource;
-                                    
+                  
                   import de.boeg.tst.provider.BoxPrimitiveDataProvider;
-                                  
+                  
                   class BoxPrimitiveDataProvider {}
-                                    
+                  
                   public class HotSpotConstantReflectionProviderTest {
                       @Test
                       @MethodSource("de.boeg.tst.provider.BoxPrimitiveDataProvider#boxPrimitiveDataProvider")
@@ -205,20 +199,18 @@ class MigrateDataProviderTest implements RewriteTest {
               ));
         }
 
-        @Test
-        void addsParameterizedTest() {
-            rewriteRun(
-              java(
+        @Test void addsParameterizedTest() {
+            rewriteRun(java(
                 """
                   package de.boeg.tst.provider;
                   import org.junit.jupiter.params.provider.Arguments;
-                                    
+                  
                   import java.util.Arrays;
                   import java.util.stream.Stream;
-                              
+                  
                   public class BoxPrimitiveDataProvider {
                       public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
-                              
+                  
                       public static Stream<Arguments> boxPrimitiveDataProvider() {
                           return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
                       }
@@ -230,9 +222,9 @@ class MigrateDataProviderTest implements RewriteTest {
                   package de.boeg.tst.real;
                   import org.testng.annotations.Test;
                   import org.junit.jupiter.params.provider.MethodSource;
-                                    
+                  
                   import de.boeg.tst.provider.BoxPrimitiveDataProvider;
-                                    
+                  
                   public class HotSpotConstantReflectionProviderTest {
                       @Test(dataProvider = "boxPrimitiveDataProvider", dataProviderClass = BoxPrimitiveDataProvider.class)
                       @MethodSource("de.boeg.tst.provider.BoxPrimitiveDataProvider#boxPrimitiveDataProvider")
@@ -243,9 +235,9 @@ class MigrateDataProviderTest implements RewriteTest {
                   import org.testng.annotations.Test;
                   import org.junit.jupiter.params.ParameterizedTest;
                   import org.junit.jupiter.params.provider.MethodSource;
-                                    
+                  
                   import de.boeg.tst.provider.BoxPrimitiveDataProvider;
-                                    
+                  
                   public class HotSpotConstantReflectionProviderTest {
                       @Test
                       @MethodSource("de.boeg.tst.provider.BoxPrimitiveDataProvider#boxPrimitiveDataProvider")
@@ -256,20 +248,19 @@ class MigrateDataProviderTest implements RewriteTest {
               ));
         }
 
-        @Test
-        void addsMethodSource() {
+        @Test void addsMethodSource() {
             rewriteRun(
               java(
                 """
                   package de.boeg.tst.provider;
                   import org.junit.jupiter.params.provider.Arguments;
-                                    
+                  
                   import java.util.Arrays;
                   import java.util.stream.Stream;
-                              
+                  
                   public class BoxPrimitiveDataProvider {
                       public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
-                              
+                  
                       public static Stream<Arguments> boxPrimitiveDataProvider() {
                           return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
                       }
@@ -280,11 +271,64 @@ class MigrateDataProviderTest implements RewriteTest {
                 """
                   package de.boeg.tst.real;
                   import org.testng.annotations.Test;
-                                    
+                  
                   import org.junit.jupiter.params.ParameterizedTest;
-                                    
+                  
                   import de.boeg.tst.provider.BoxPrimitiveDataProvider;
-                                  
+                  
+                  public class HotSpotConstantReflectionProviderTest {
+                      @Test(dataProvider = "boxPrimitiveDataProvider", dataProviderClass = BoxPrimitiveDataProvider.class)
+                      @ParameterizedTest
+                      public void testUnboxPrimitive(Object constant, Object expected) {/*...*/}
+                  }
+                  """, 
+                  """
+                  package de.boeg.tst.real;
+                  import org.junit.jupiter.params.provider.MethodSource;
+                  import org.testng.annotations.Test;
+                  
+                  import org.junit.jupiter.params.ParameterizedTest;
+                  
+                  import de.boeg.tst.provider.BoxPrimitiveDataProvider;
+                  
+                  public class HotSpotConstantReflectionProviderTest {
+                      @Test
+                      @ParameterizedTest
+                      @MethodSource("de.boeg.tst.provider.BoxPrimitiveDataProvider#boxPrimitiveDataProvider")
+                      public void testUnboxPrimitive(Object constant, Object expected) {/*...*/}
+                  }
+                  """
+              ));
+        }
+
+        @Test void removesTestNgAnnotationArguments() {
+            rewriteRun(
+              java(
+                """
+                  package de.boeg.tst.provider;
+                  import org.junit.jupiter.params.provider.Arguments;
+                  
+                  import java.util.Arrays;
+                  import java.util.stream.Stream;
+                  
+                  public class BoxPrimitiveDataProvider {
+                      public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
+                  
+                      public static Stream<Arguments> boxPrimitiveDataProvider() {
+                          return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
+                      }
+                  }
+                  """
+              ),
+              java(
+                """
+                  package de.boeg.tst.real;
+                  import org.testng.annotations.Test;
+                  
+                  import org.junit.jupiter.params.ParameterizedTest;
+                  
+                  import de.boeg.tst.provider.BoxPrimitiveDataProvider;
+                  
                   public class HotSpotConstantReflectionProviderTest {
                       @Test(dataProvider = "boxPrimitiveDataProvider", dataProviderClass = BoxPrimitiveDataProvider.class)
                       @ParameterizedTest
@@ -294,11 +338,11 @@ class MigrateDataProviderTest implements RewriteTest {
                   package de.boeg.tst.real;
                   import org.junit.jupiter.params.provider.MethodSource;
                   import org.testng.annotations.Test;
-                                    
+                  
                   import org.junit.jupiter.params.ParameterizedTest;
-                                    
+                  
                   import de.boeg.tst.provider.BoxPrimitiveDataProvider;
-                                    
+                  
                   public class HotSpotConstantReflectionProviderTest {
                       @Test
                       @ParameterizedTest
@@ -309,20 +353,18 @@ class MigrateDataProviderTest implements RewriteTest {
               ));
         }
 
-        @Test
-        void removesTestNgAnnotationArguments() {
-            rewriteRun(
-              java(
+        @Test void doNothingIfNameMissing() {
+            rewriteRun(java(
                 """
                   package de.boeg.tst.provider;
                   import org.junit.jupiter.params.provider.Arguments;
-                                    
+                  
                   import java.util.Arrays;
                   import java.util.stream.Stream;
-                              
+                  
                   public class BoxPrimitiveDataProvider {
                       public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
-                              
+                  
                       public static Stream<Arguments> boxPrimitiveDataProvider() {
                           return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
                       }
@@ -333,60 +375,7 @@ class MigrateDataProviderTest implements RewriteTest {
                 """
                   package de.boeg.tst.real;
                   import org.testng.annotations.Test;
-                                    
-                  import org.junit.jupiter.params.ParameterizedTest;
-                                    
-                  import de.boeg.tst.provider.BoxPrimitiveDataProvider;
-                                  
-                  public class HotSpotConstantReflectionProviderTest {
-                      @Test(dataProvider = "boxPrimitiveDataProvider", dataProviderClass = BoxPrimitiveDataProvider.class)
-                      @ParameterizedTest
-                      public void testUnboxPrimitive(Object constant, Object expected) {/*...*/}
-                  }
-                  """, """
-                  package de.boeg.tst.real;
-                  import org.junit.jupiter.params.provider.MethodSource;
-                  import org.testng.annotations.Test;
-                                    
-                  import org.junit.jupiter.params.ParameterizedTest;
-                                    
-                  import de.boeg.tst.provider.BoxPrimitiveDataProvider;
-                                  
-                  public class HotSpotConstantReflectionProviderTest {
-                      @Test
-                      @ParameterizedTest
-                      @MethodSource("de.boeg.tst.provider.BoxPrimitiveDataProvider#boxPrimitiveDataProvider")
-                      public void testUnboxPrimitive(Object constant, Object expected) {/*...*/}
-                  }
-                  """
-              ));
-        }
-
-        @Test
-        void doNothingIfNameMissing() {
-            rewriteRun(
-              java(
-                """
-                  package de.boeg.tst.provider;
-                  import org.junit.jupiter.params.provider.Arguments;
-                                    
-                  import java.util.Arrays;
-                  import java.util.stream.Stream;
-                              
-                  public class BoxPrimitiveDataProvider {
-                      public static Object[][] boxPrimitiveDataProvider() { /*...*/ }
-                              
-                      public static Stream<Arguments> boxPrimitiveDataProvider() {
-                          return Arrays.stream(boxPrimitiveDataProvider()).map(Arguments::of);
-                      }
-                  }
-                  """
-              ),
-              java(
-                """
-                  package de.boeg.tst.real;
-                  import org.testng.annotations.Test;
-                                  
+                  
                   public class HotSpotConstantReflectionProviderTest {
                       @Test(enabled = false)
                       public void testUnboxPrimitive(Object constant, Object expected) {/*...*/}
