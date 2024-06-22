@@ -9,17 +9,14 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Answer questions regarding annotation arguments and there values
+ * Answer questions regarding annotation arguments and their values
  *
  * @see J.Annotation
  */
 public final class AnnotationArguments {
 
     /**
-     * Determins if the annotation has any arguments
-     *
-     * @param annotation
-     * @return
+     * Determines if the annotation has any arguments
      */
     public static boolean hasAny(J.Annotation annotation) {
         List<Expression> arguments = annotation.getArguments();
@@ -37,7 +34,6 @@ public final class AnnotationArguments {
      *
      * @param annotation   to extract the assignments from
      * @param argumentName to extract
-     * @return
      */
     public static List<Expression> extractAssignments(J.Annotation annotation, String argumentName) {
         List<Expression> arguments = annotation.getArguments();

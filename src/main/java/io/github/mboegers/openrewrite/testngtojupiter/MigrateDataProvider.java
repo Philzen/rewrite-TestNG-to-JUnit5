@@ -109,8 +109,8 @@ public class MigrateDataProvider extends Recipe {
             method = super.visitMethodDeclaration(method, ctx);
 
             // if @ParameterizedTest is used, skip
-            Optional<J.Annotation> paraeterizedTestAnnotation = FindAnnotation.findFirst(method, new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest"));
-            if (paraeterizedTestAnnotation.isPresent()) {
+            Optional<J.Annotation> parameterizedTestAnnotation = FindAnnotation.findFirst(method, new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest"));
+            if (parameterizedTestAnnotation.isPresent()) {
                 return method;
             }
 
