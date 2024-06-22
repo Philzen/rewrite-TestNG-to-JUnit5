@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
  *
  * @see J.Annotation
  */
-public final class AnnotationArguments {
+public enum AnnotationArguments {;
 
     /**
      * Extracts all assignments with the given argument name from the annotation
