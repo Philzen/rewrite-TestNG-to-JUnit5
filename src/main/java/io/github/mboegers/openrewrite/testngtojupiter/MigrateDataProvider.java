@@ -42,7 +42,8 @@ public class MigrateDataProvider extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new TreeVisitor<>() {
+        return new TreeVisitor<Tree, ExecutionContext>() {
+            
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx, Cursor parent) {
                 tree = super.visit(tree, ctx, parent);
@@ -65,15 +66,15 @@ public class MigrateDataProvider extends Recipe {
 
     private class WrapDataProviderMethod extends JavaIsoVisitor<ExecutionContext> {
 
-        private static final JavaTemplate methodeSourceTemplate = JavaTemplate.builder("""
-                        public static Stream<Arguments> #{}() {
-                            return Arrays.stream(#{}()).map(Arguments::of);
-                        }
-                        """)
-                .imports("org.junit.jupiter.params.provider.Arguments", "java.util.Arrays", "java.util.stream.Stream")
-                .contextSensitive()
-                .javaParser(JavaParser.fromJavaVersion().classpath("junit-jupiter-params"))
-                .build();
+        private final JavaTemplate methodeSourceTemplate = JavaTemplate.builder(
+                "public static Stream<Arguments> #{}() {\n"
+                + "    return Arrays.stream(#{}()).map(Arguments::of);\n"
+                + "}"
+            )
+            .imports("org.junit.jupiter.params.provider.Arguments", "java.util.Arrays", "java.util.stream.Stream")
+            .contextSensitive()
+            .javaParser(JavaParser.fromJavaVersion().classpath("junit-jupiter-params"))
+            .build();
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, org.openrewrite.ExecutionContext ctx) {
@@ -115,13 +116,13 @@ public class MigrateDataProvider extends Recipe {
 
             // if no TestNG @Test present, skip
             Optional<J.Annotation> testNgAnnotation = FindAnnotation.findFirst(method, new AnnotationMatcher("@org.testng.annotations.Test"));
-            if (testNgAnnotation.isEmpty()) {
+            if (!testNgAnnotation.isPresent()) {
                 return method;
             }
 
             // determine if a parameterized test is applicable
             Optional<String> dataProviderMethodName = AnnotationArguments.extractLiteral(testNgAnnotation.get(), "dataProvider", String.class);
-            if (dataProviderMethodName.isEmpty()) {
+            if (!dataProviderMethodName.isPresent()) {
                 return method;
             }
 
@@ -153,13 +154,13 @@ public class MigrateDataProvider extends Recipe {
 
             // if no testng annotation is present, skip
             Optional<J.Annotation> testNgAnnotation = FindAnnotation.findFirst(method, new AnnotationMatcher("@org.testng.annotations.Test"));
-            if (testNgAnnotation.isEmpty()) {
+            if (!testNgAnnotation.isPresent()) {
                 return method;
             }
 
             // determine Provider name, if not present skip!
             Optional<String> dataProviderMethodName = AnnotationArguments.extractLiteral(testNgAnnotation.get(), "dataProvider", String.class);
-            if (dataProviderMethodName.isEmpty()) {
+            if (!dataProviderMethodName.isPresent()) {
                 return method;
             }
 

@@ -3,8 +3,10 @@ package io.github.mboegers.openrewrite.testngtojupiter.helper;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Answer questions regarding annotation arguments and there values
@@ -41,7 +43,7 @@ public final class AnnotationArguments {
         List<Expression> arguments = annotation.getArguments();
 
         if (arguments == null) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         return arguments.stream()
@@ -49,7 +51,7 @@ public final class AnnotationArguments {
                 .map(J.Assignment.class::cast)
                 .filter(a -> argumentName.equals(((J.Identifier) a.getVariable()).getSimpleName()))
                 .map(J.Assignment::getAssignment)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     /**
