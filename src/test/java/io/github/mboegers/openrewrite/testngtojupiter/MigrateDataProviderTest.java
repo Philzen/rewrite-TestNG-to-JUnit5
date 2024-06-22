@@ -8,8 +8,9 @@
  * https://www.eclipse.org/legal/epl-v20.html
  */
 
-package io.github.mboegers.openrewrite.testngtojupiter.parameterized;
+package io.github.mboegers.openrewrite.testngtojupiter;
 
+import io.github.mboegers.openrewrite.testngtojupiter.MigrateDataProvider;
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

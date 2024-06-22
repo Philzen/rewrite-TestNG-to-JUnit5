@@ -6,7 +6,7 @@ import org.openrewrite.java.tree.J;
 import java.util.List;
 import java.util.Optional;
 
-public final class AnnotationParameterValue {
+public final class AnnotationArguments {
 
     public static boolean hasAny(J.Annotation annotation) {
         List<Expression> arguments = annotation.getArguments();

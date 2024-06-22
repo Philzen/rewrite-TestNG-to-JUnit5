@@ -8,9 +8,9 @@
  * https://www.eclipse.org/legal/epl-v20.html
  */
 
-package io.github.mboegers.openrewrite.testngtojupiter.parameterized;
+package io.github.mboegers.openrewrite.testngtojupiter;
 
-import io.github.mboegers.openrewrite.testngtojupiter.helper.AnnotationParameterValue;
+import io.github.mboegers.openrewrite.testngtojupiter.helper.AnnotationArguments;
 import io.github.mboegers.openrewrite.testngtojupiter.helper.FindAnnotatedMethods;
 import io.github.mboegers.openrewrite.testngtojupiter.helper.FindAnnotation;
 import io.github.mboegers.openrewrite.testngtojupiter.helper.UsesAnnotation;
@@ -64,7 +64,7 @@ public class MigrateDataProvider extends Recipe {
             for (J.MethodDeclaration provider : dataProviders) {
                 String providerMethodName = provider.getSimpleName();
                 String providerName = FindAnnotation.find(provider, DATAPROVIDER_MATCHER).stream().findAny()
-                        .flatMap(j -> AnnotationParameterValue.extract(j, "name", String.class))
+                        .flatMap(j -> AnnotationArguments.extract(j, "name", String.class))
                         .orElse(providerMethodName);
 
                 classDecl = classDecl.withBody(methodeSourceTemplate.apply(
