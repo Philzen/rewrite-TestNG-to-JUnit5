@@ -8,6 +8,68 @@ Converts [TestNG](https://testng.org/) test annotations and assertions to
 
 Inspired by the [Migrate JUnit 4 @Test annotations to JUnit 5](https://docs.openrewrite.org/recipes/java/testing/junit5/updatetestannotation) recipe
 
+## Roadmap 
+
+This repository is under heavy development. Refer to the [project kanban board](https://github.com/users/Philzen/projects/2/views/2) 
+for ongoing updates on the road to feature completeness. Should you notice a blind spot 
+regarding TestNG features that should be included in a project migration, or if you have idea 
+for a particular implementation, your contributions are welcome!
+
+See below tables for a brief summary of the implementation progress.
+
+### Annotations
+
+| Annotation                                      |     on<br>Class      |    on<br>Methods     |
+|-------------------------------------------------|:--------------------:|:--------------------:|
+| `@Test`                                         |  :heavy_check_mark:  |  :heavy_check_mark:  |
+| `@Test(description = "%s")`                     |    :hammer: [#23]    |  :heavy_check_mark:  |
+| `@Test(enabled = false)`                        |    :hammer: [#39]    |  :heavy_check_mark:  |
+| `@Test(expectedExceptions = Exception.class)`   |    :hammer: [#20]    |  :heavy_check_mark:  |
+| `@Test(expectedExceptionsMessageRegExp = "%s")` |    :hammer: [#21]    |  :heavy_check_mark:  | 
+| `@Test(groups = "%s")`                          |    :hammer: [#27]    |  :heavy_check_mark:  |
+| `@Test(timeOut = "%s")`                         |    :hammer: [#25]    |  :heavy_check_mark:  |
+| `@DataProvider`                                 |    :hammer: [#6]     |    :hammer: [#38]    |
+| `@Ignore`                                       |    :hammer: [#15]    |    :hammer: [#15]    |
+| `@Test(enabled = CONSTANT_EXPRESSION)`          |   :thinking: [#35]   |   :thinking: [#35]   |
+| `@Factory`                                      |   :thinking: [#8]    |   :thinking: [#8]    |
+| `@Test(priority, threadPoolSize)` et al.        | :grey_question: [#5] | :grey_question: [#5] |
+
+  [#3]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/pull/3
+  [#5]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/5
+  [#6]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/6
+  [#7]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/7
+  [#8]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/8
+  [#10]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/10
+  [#11]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/11
+  [#12]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/12
+  [#13]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/13
+  [#14]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/14
+  [#15]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/15
+  [#20]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/20
+  [#21]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/21
+  [#23]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/23
+  [#25]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/25
+  [#27]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/27
+  [#29]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/29
+  [#30]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/30
+  [#32]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/32
+  [#35]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/35
+  [#38]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/pull/38
+  [#39]: https://github.com/Philzen/rewrite-TestNG-to-JUnit5/issues/39
+
+### Framework features
+
+| Feature                           |        on<br>Class        |
+|-----------------------------------|:-------------------------:|
+| Tests in inner classes            | :heavy_check_mark: [#30]  |
+| Assertions                        |       :hammer: [#3]       |      
+| Lifecycle annotations             |       :hammer: [#7]       |
+| Per class instantiation lifecycle |      :hammer: [#14]       |
+| `SkipException` (→ assumption)    |      :hammer: [#32]       |
+| Dependency migration              |       :hammer:[#29]       |
+| Interceptor interfaces            | :thinking: [#10] \| [#11] |
+| Listener interfaces               | :thinking: [#12] \| [#13] |
+
 ## Usage
 
 ### Prerequisites
